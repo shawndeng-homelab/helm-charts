@@ -1,0 +1,36 @@
+apiVersion: v1
+entries:
+  hello-word:
+  - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2025-03-30T10:31:50.124939049Z"
+    description: A Helm chart for Kubernetes
+    digest: f2b187490348037318a826fe937d1b93b53e31c0b9ffdaee1fb80e038b5b9004
+    name: hello-word
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/hello-word-0.1.0/hello-word-0.1.0.tgz
+    version: 0.1.0
+  ib-gateway-docker:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-03-30T10:31:50.326807515Z"
+    description: A Helm chart for Kubernetes
+    digest: a0ab33907aaa31bfa25b7b2ca46525bd07a1e37cd2c07729b59bcac99be7dcd5
+    name: ib-gateway-docker
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/ib-gateway-docker-0.1.0/ib-gateway-docker-0.1.0.tgz
+    version: 0.1.0
+  ibkr_event_daemon:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-03-30T10:31:50.45440097Z"
+    description: A Helm chart for Kubernetes
+    digest: 2cedf9ed712eccbeec1fcf0db440ebd4fd1e705d017473ffcb8dc0a48c7fce17
+    name: ibkr_event_daemon
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/ibkr_event_daemon-0.1.0/ibkr_event_daemon-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-03-30T10:31:50.454407482Z"
