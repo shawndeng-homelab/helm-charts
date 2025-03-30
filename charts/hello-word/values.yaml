@@ -1,0 +1,122 @@
+# hello-word 的默认值。
+# 这是一个 YAML 格式的文件。
+# 声明要传递到模板中的变量。
+
+# 这将设置副本集的数量，更多信息请参考：https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
+
+# 这将设置容器镜像，更多信息请参考：https://kubernetes.io/docs/concepts/containers/images/
+image:
+  repository: nginx
+  # 这将设置镜像的拉取策略。
+  pullPolicy: IfNotPresent
+  # 覆盖镜像标签，默认值为 chart 的 appVersion。
+  tag: ""
+
+# 这是用于从私有仓库拉取镜像的密钥，更多信息请参考：https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# 这是用于覆盖 chart 名称。
+nameOverride: ""
+fullnameOverride: ""
+
+# 这一部分用于构建服务账户，更多信息请参考：https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # 指定是否应创建服务账户
+  create: true
+  # 是否自动挂载服务账户的 API 凭据？
+  automount: true
+  # 添加到服务账户的注解
+  annotations: {}
+  # 要使用的服务账户名称。
+  # 如果未设置且 create 为 true，则使用 fullname 模板生成名称
+  name: ""
+
+# 这是用于为 Pod 设置 Kubernetes 注解。
+# 更多信息请参考：https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: {}
+# 这是用于为 Pod 设置 Kubernetes 标签。
+# 更多信息请参考：https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+# 这是用于设置服务，更多信息请参考：https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  # 这将设置服务类型，更多信息请参考：https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  type: ClusterIP
+  # 这将设置端口，更多信息请参考：https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  port: 80
+
+# 这一部分用于设置 ingress，更多信息请参考：https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # 通常我们建议不要指定默认资源，而是让用户自行选择。
+  # 这也增加了 chart 在资源较少的环境（如 Minikube）中运行的可能性。
+  # 如果确实想指定资源，请取消以下行的注释，根据需要调整它们，并删除 'resources:' 后的花括号。
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# 这是用于设置存活探针和就绪探针，更多信息请参考：https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+
+# 这一部分用于设置自动扩缩，更多信息请参考：https://kubernetes.io/docs/concepts/workloads/autoscaling/
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# 在输出的 Deployment 定义中添加额外的卷。
+volumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# 在输出的 Deployment 定义中添加额外的卷挂载。
+volumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
