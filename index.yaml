@@ -33,4 +33,26 @@ entries:
     urls:
     - https://github.com/shawndeng-homelab/helm-charts/releases/download/ibkr_event_daemon-0.1.0/ibkr_event_daemon-0.1.0.tgz
     version: 0.1.0
-generated: "2025-03-30T10:31:50.454407482Z"
+  my-chart:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-04-13T13:41:15.59449689Z"
+    description: A Helm chart for Kubernetes
+    digest: f0b4a93ed302b887c677cc109e92bd4c7655a740744db7b78b79be0fb26e264f
+    name: my-chart
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/my-chart-0.1.0/my-chart-0.1.0.tgz
+    version: 0.1.0
+  redis:
+  - apiVersion: v2
+    appVersion: 7.4.2
+    created: "2025-04-13T13:41:15.732862421Z"
+    description: homelab redis chart
+    digest: b131551e3368d6846c85eb4f1c075591d72245bd04ed15f6b3c5d731a187f99d
+    name: redis
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/redis-0.1.0/redis-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-04-13T13:41:15.732869905Z"
