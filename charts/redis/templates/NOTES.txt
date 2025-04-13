@@ -1,0 +1,10 @@
+1. 获取 Redis 连接信息：
+
+{{- if contains "LoadBalancer" .Values.service.type }}
+  Redis 地址: {{ include "redis.fullname" . }}.{{ .Values.namespace }}.svc.cluster.local:{{ .Values.service.port }}
+  注意：LoadBalancer IP 可能需要几分钟才能分配。您可以通过以下命令查看状态：
+  kubectl get svc -n {{ .Values.namespace }} {{ include "redis.fullname" . }}
+{{- end }}
+
+2. Redis 密码: {{ .Values.redisPassword }}
+
