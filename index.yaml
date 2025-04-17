@@ -1,5 +1,16 @@
 apiVersion: v1
 entries:
+  cloudflare-vpn:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-04-17T15:12:21.006272004Z"
+    description: A Helm chart for Kubernetes
+    digest: 41054bb28466710b2a1d6bfc069a3271868248896afe6efb10921b367dff9669
+    name: cloudflare-vpn
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/cloudflare-vpn-0.1.0/cloudflare-vpn-0.1.0.tgz
+    version: 0.1.0
   hello-word:
   - apiVersion: v2
     appVersion: 0.1.0
@@ -10,6 +21,17 @@ entries:
     type: application
     urls:
     - https://github.com/shawndeng-homelab/helm-charts/releases/download/hello-word-0.1.0/hello-word-0.1.0.tgz
+    version: 0.1.0
+  homelab-ingress:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-04-17T15:12:21.14115114Z"
+    description: A Helm chart for Kubernetes
+    digest: 6b51dee9295d3e3e68cd2496898c3e426e80c03051a576aa72d3bd49150b8215
+    name: homelab-ingress
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/homelab-ingress-0.1.0/homelab-ingress-0.1.0.tgz
     version: 0.1.0
   ib-gateway-docker:
   - apiVersion: v2
@@ -55,4 +77,4 @@ entries:
     urls:
     - https://github.com/shawndeng-homelab/helm-charts/releases/download/redis-0.1.0/redis-0.1.0.tgz
     version: 0.1.0
-generated: "2025-04-13T13:41:15.732869905Z"
+generated: "2025-04-17T15:12:21.141157482Z"
