@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-svc-nginx
+  namespace: default
+spec:
+  rules:
+    - http:
+        paths:
+          - backend:
+              service:
+                name: test-svc-nginx
+                port:
+                  number: 80
+            path: /nginx
+            pathType: Prefix

@@ -55,4 +55,5 @@
 |------------------------------------------|------------------------------------------|-------------------------------------------------------------------------|
 | `kubectl create deployment <name> --image=<image> --dry-run=client -o yaml` | 创建一个 Deployment 并以 YAML 格式输出（不实际应用）。 | `kubectl create deployment nginx --image=nginx --dry-run=client -o yaml` |
 | `kubectl create service clusterip <name> --tcp=<port>:<targetPort> --dry-run=client -o yaml` | 创建一个 ClusterIP 类型的 Service 并以 YAML 格式输出（不实际应用）。 | `kubectl create service clusterip my-svc --tcp=80:80 --dry-run=client -o yaml` |
+| `kubectl create secret generic <name> --from-literal=<key>=<value> --dry-run=client -o yaml` | 创建一个 Secret 并以 YAML 格式输出（不实际应用）。 | `kubectl create secret generic my-secret --from-literal=username=admin --from-literal=password=12345 --dry-run=client -o yaml` |
 | `kubectl explain <resource>.<field>`     | 查看指定资源及字段的详细说明。    | `kubectl explain service.spec.type`                                    |

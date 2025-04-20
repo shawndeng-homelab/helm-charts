@@ -4,7 +4,8 @@ metadata:
   name: {{ .Values.ingress.name }}
   namespace: {{ .Values.ingress.namespace }}
 spec:
-  {{- toYaml .Values.ingress.selector | nindent 2 }}
+  selector:
+  {{- toYaml .Values.ingress.selector | nindent 4 }}
   type: {{ .Values.ingress.type }}
   ports:
     - name: http
