@@ -3,8 +3,26 @@ kind: Ingress
 metadata:
   name: test-svc-nginx
   namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # cert-manager 注解
+    cert-manager.io/cluster-issuer: "lets-encrypt"  # 使用您已配置的 ClusterIssuer
 spec:
+  tls:
+  - hosts:
+    - homelab.shawndeng.cc
+    secretName: homelab-tls-cert  # cert-manager 将创建此 secret
   rules:
+    - host: homelab.shawndeng.cc
+      http:
+        paths:
+          - backend:
+              service:
+                name: test-svc-nginx
+                port:
+                  number: 80
+            path: /default/test-svc-nginx(/|$)(.*)
+            pathType: Prefix
     - http:
         paths:
           - backend:
@@ -12,5 +30,5 @@ spec:
                 name: test-svc-nginx
                 port:
                   number: 80
-            path: /nginx
+            path: /default/test-svc-nginx(/|$)(.*)
             pathType: Prefix
