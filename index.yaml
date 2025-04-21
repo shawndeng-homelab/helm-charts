@@ -25,6 +25,16 @@ entries:
   homelab-ingress:
   - apiVersion: v2
     appVersion: 1.16.0
+    created: "2025-04-21T16:00:05.010083242Z"
+    description: A Helm chart for Kubernetes
+    digest: d63dc1b961208489e62a014f42f6eb929758a3c529c97317728063ef849bb510
+    name: homelab-ingress
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/homelab-ingress-0.1.1/homelab-ingress-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: 1.16.0
     created: "2025-04-17T15:12:21.14115114Z"
     description: A Helm chart for Kubernetes
     digest: 6b51dee9295d3e3e68cd2496898c3e426e80c03051a576aa72d3bd49150b8215
@@ -77,4 +87,4 @@ entries:
     urls:
     - https://github.com/shawndeng-homelab/helm-charts/releases/download/redis-0.1.0/redis-0.1.0.tgz
     version: 0.1.0
-generated: "2025-04-17T15:12:21.141157482Z"
+generated: "2025-04-21T16:00:05.010096768Z"
