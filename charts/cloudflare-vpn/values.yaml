@@ -1,6 +1,0 @@
-nameSpace: cloudflare
-replicas: 2
-token: ZXlKaElqb2laR0UzT1RZM05ETXhPVEkwWTJNeFptWTNOR1kyWldVeU5XSTFPVEl6TURNaUxDSjBJam9pTldJek4yWm1ObVF0T1RKbU5TMDBPREE1TFRsaE16QXRaakUyWVRWa05EUmxOelpoSWl3aWN5STZJazVFVW1wUFYxWnJUbGRSZEU1NldURmFVekF3VDFkWk1VeFhSbXhhUkdOMFRXMU5lazlVUlRWT1JFa3hXV3BuZHlKOQ==
-cloudflare:
-  tunnel:
-    hostname: homelab.shawndeng.cc

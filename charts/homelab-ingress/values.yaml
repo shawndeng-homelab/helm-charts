@@ -1,6 +1,0 @@
-ingress:
-  name: ingress
-  namespace: ingress
-  type: LoadBalancer
-  selector:
-    name: nginx-ingress-microk8s
