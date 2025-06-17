@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ib-gateway-docker.fullname" . }}
+  labels:
+    {{- include "ib-gateway-docker.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ib-gateway-docker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "ib-gateway-docker.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: TWS_USERID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret | default (.Values.secret.name | default (include "ib-gateway-docker.fullname" .)) }}
+                  key: TWS_USERID
+            - name: TWS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret | default (.Values.secret.name | default (include "ib-gateway-docker.fullname" .)) }}
+                  key: TWS_PASSWORD
+            - name: TRADING_MODE
+              value: {{ .Values.env.tradingMode | quote }}
+            - name: TWS_SETTINGS_PATH
+              value: {{ .Values.env.twsSettingsPath | quote }}
+            - name: TWS_ACCEPT_INCOMING
+              value: {{ .Values.env.twsAcceptIncoming | quote }}
+            - name: READ_ONLY_API
+              value: {{ .Values.env.readOnlyApi | quote }}
+            - name: VNC_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret | default (.Values.secret.name | default (include "ib-gateway-docker.fullname" .)) }}
+                  key: VNC_SERVER_PASSWORD
+            - name: TWOFA_TIMEOUT_ACTION
+              value: {{ .Values.env.twofaTimeoutAction | quote }}
+            - name: BYPASS_WARNING
+              value: {{ .Values.env.bypassWarning | quote }}
+            - name: AUTO_RESTART_TIME
+              value: {{ .Values.env.autoRestartTime | quote }}
+            - name: AUTO_LOGOFF_TIME
+              value: {{ .Values.env.autoLogoffTime | quote }}
+            - name: TWS_COLD_RESTART
+              value: {{ .Values.env.twsColdRestart | quote }}
+            - name: SAVE_TWS_SETTINGS
+              value: {{ .Values.env.saveTwsSettings | quote }}
+            - name: RELOGIN_AFTER_TWOFA_TIMEOUT
+              value: {{ .Values.env.reloginAfterTwofaTimeout | quote }}
+            - name: TWOFA_EXIT_INTERVAL
+              value: {{ .Values.env.twofaExitInterval | quote }}
+            - name: TWOFA_DEVICE
+              value: {{ .Values.env.twofaDevice | quote }}
+            - name: EXISTING_SESSION_DETECTED_ACTION
+              value: {{ .Values.env.existingSessionDetectedAction | quote }}
+            - name: ALLOW_BLIND_TRADING
+              value: {{ .Values.env.allowBlindTrading | quote }}
+            - name: TIME_ZONE
+              value: {{ .Values.env.timeZone | quote }}
+            - name: TZ
+              value: {{ .Values.env.timeZone | quote }}
+            - name: CUSTOM_CONFIG
+              value: {{ .Values.env.customConfig | quote }}
+            - name: JAVA_HEAP_SIZE
+              value: {{ .Values.env.javaHeapSize | quote }}
+            - name: SSH_TUNNEL
+              value: {{ .Values.env.sshTunnel | quote }}
+            - name: SSH_OPTIONS
+              value: {{ .Values.env.sshOptions | quote }}
+            - name: SSH_ALIVE_INTERVAL
+              value: {{ .Values.env.sshAliveInterval | quote }}
+            - name: SSH_ALIVE_COUNT
+              value: {{ .Values.env.sshAliveCount | quote }}
+            - name: SSH_PASSPHRASE
+              value: {{ .Values.env.sshPassphrase | quote }}
+            - name: SSH_REMOTE_PORT
+              value: {{ .Values.env.sshRemotePort | quote }}
+            - name: SSH_USER_TUNNEL
+              value: {{ .Values.env.sshUserTunnel | quote }}
+            - name: SSH_RESTART
+              value: {{ .Values.env.sshRestart | quote }}
+            - name: SSH_VNC_PORT
+              value: {{ .Values.env.sshVncPort | quote }}
+          ports:
+            {{- range $name, $port := .Values.service.ports }}
+            {{- if $port.enabled }}
+            - name: {{ $name }}
+              containerPort: {{ $port.targetPort }}
+              protocol: {{ $port.protocol }}
+            {{- end }}
+            {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,101 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/gnzsnz/ib-gateway
+  pullPolicy: IfNotPresent
+  tag: "10.37.1i"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: LoadBalancer
+  ports:
+    vnc:
+      enabled: true
+      port: 5900
+      targetPort: 5900
+      protocol: TCP
+    tws-api:
+      enabled: true
+      port: 4003
+      targetPort: 4003
+      protocol: TCP
+    tws-readonly:
+      enabled: true
+      port: 4004
+      targetPort: 4004
+      protocol: TCP
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Environment variables configuration https://github.com/gnzsnz/ib-gateway-docker/pkgs/container/ib-gateway
+env:
+  tradingMode: "both"
+  twsSettingsPath: ""
+  twsAcceptIncoming: ""
+  readOnlyApi: "yes"
+  twofaTimeoutAction: "exit"
+  bypassWarning: ""
+  autoRestartTime: ""
+  autoLogoffTime: ""
+  twsColdRestart: ""
+  saveTwsSettings: ""
+  reloginAfterTwofaTimeout: "no"
+  twofaExitInterval: "60"
+  twofaDevice: ""
+  existingSessionDetectedAction: "primary"
+  allowBlindTrading: "no"
+  timeZone: "Etc/UTC"
+  customConfig: "NO"
+  javaHeapSize: ""
+  sshTunnel: ""
+  sshOptions: ""
+  sshAliveInterval: ""
+  sshAliveCount: ""
+  sshPassphrase: ""
+  sshRemotePort: ""
+  sshUserTunnel: ""
+  sshRestart: ""
+  sshVncPort: ""
+
+# Secret configuration
+secret:
+  # Set to true if you want to create a new secret
+  create: true
+  # Secret name, if not set will use the release name
+  name: ""
+  # Set to false if you want to use an existing secret
+  existingSecret: ""
+  # Secret data keys
+  # TWS_USERID: Your Interactive Brokers account ID
+  twsUserid: "shawndeng1109"
+  # TWS_PASSWORD: Your Interactive Brokers account password
+  twsPassword: "DengHui123"
+  # VNC_SERVER_PASSWORD: Your VNC server password
+  vncPassword: ""
+  # Note: The secret will be created with the following keys:
+  # - TWS_USERID: Your IB account ID
+  # - TWS_PASSWORD: Your IB account password
+  # - VNC_SERVER_PASSWORD: Your VNC server password
+  # If using existingSecret, make sure it contains these keys
