@@ -26,12 +26,12 @@ service:
       protocol: TCP
     tws-api:
       enabled: true
-      port: 4003
+      port: 4001
       targetPort: 4003
       protocol: TCP
     tws-readonly:
       enabled: true
-      port: 4004
+      port: 4002
       targetPort: 4004
       protocol: TCP
 
@@ -55,7 +55,7 @@ env:
   twsSettingsPath: ""
   twsAcceptIncoming: ""
   readOnlyApi: "yes"
-  twofaTimeoutAction: "exit"
+  twofaTimeoutAction: "restart"
   bypassWarning: ""
   autoRestartTime: ""
   autoLogoffTime: ""
@@ -89,9 +89,9 @@ secret:
   existingSecret: ""
   # Secret data keys
   # TWS_USERID: Your Interactive Brokers account ID
-  twsUserid: "shawndeng1109"
+  twsUserid: "xxx"
   # TWS_PASSWORD: Your Interactive Brokers account password
-  twsPassword: "DengHui123"
+  twsPassword: "xxx"
   # VNC_SERVER_PASSWORD: Your VNC server password
   vncPassword: ""
   # Note: The secret will be created with the following keys:
