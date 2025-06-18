@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/gnzsnz/ib-gateway
   pullPolicy: IfNotPresent
-  tag: "10.37.1i"
+  tag: "10.30.1w"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -26,12 +26,12 @@ service:
       protocol: TCP
     tws-api:
       enabled: true
-      port: 4001
+      port: 4003
       targetPort: 4003
       protocol: TCP
     tws-readonly:
       enabled: true
-      port: 4002
+      port: 4004
       targetPort: 4004
       protocol: TCP
 
@@ -55,7 +55,7 @@ env:
   twsSettingsPath: ""
   twsAcceptIncoming: ""
   readOnlyApi: "yes"
-  twofaTimeoutAction: "restart"
+  twofaTimeoutAction: "exit"
   bypassWarning: ""
   autoRestartTime: ""
   autoLogoffTime: ""
@@ -93,7 +93,7 @@ secret:
   # TWS_PASSWORD: Your Interactive Brokers account password
   twsPassword: "xxx"
   # VNC_SERVER_PASSWORD: Your VNC server password
-  vncPassword: ""
+  vncPassword: "xxx"
   # Note: The secret will be created with the following keys:
   # - TWS_USERID: Your IB account ID
   # - TWS_PASSWORD: Your IB account password
