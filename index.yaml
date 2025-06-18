@@ -45,6 +45,16 @@ entries:
     version: 0.1.0
   ib-gateway-docker:
   - apiVersion: v2
+    appVersion: 10.30.1w
+    created: "2025-06-18T13:55:52.980976753Z"
+    description: A Helm chart for Kubernetes
+    digest: d2341e36ddf06e23c3b22e33d268287038f9ce1a5452014083084dbfd62cd1c4
+    name: ib-gateway-docker
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/ib-gateway-docker-0.2.0/ib-gateway-docker-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: 1.16.0
     created: "2025-03-30T10:31:50.326807515Z"
     description: A Helm chart for Kubernetes
@@ -148,4 +158,4 @@ entries:
     urls:
     - https://github.com/shawndeng-homelab/helm-charts/releases/download/supabase-5.3.6/supabase-5.3.6.tgz
     version: 5.3.6
-generated: "2025-06-12T13:53:10.595227898Z"
+generated: "2025-06-18T13:55:52.980988094Z"
