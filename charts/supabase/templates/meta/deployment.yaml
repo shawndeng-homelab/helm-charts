@@ -29,8 +29,8 @@ spec:
         {{- $defaultEnv := list }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_PORT" "value" "8080") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_HOST" "value" (printf "%s-db" (include "supabase.fullname" .))) }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_PORT" "value" (.Values.postgres.port | quote)) }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_NAME" "value" .Values.postgres.database) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_PORT" "value" (.Values.database.postgres.port | quote)) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_NAME" "value" .Values.database.postgres.database) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_USER" "value" "supabase_admin") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "postgres-password"))) }}
         {{- include "supabase.envVars" (dict "env" $defaultEnv "overrides" .Values.meta.envOverrides) | nindent 8 }}

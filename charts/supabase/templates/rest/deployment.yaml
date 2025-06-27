@@ -27,7 +27,7 @@ spec:
           name: http
         env:
         {{- $defaultEnv := list }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "PGRST_DB_URI" "value" (printf "postgres://authenticator:%s@%s-db:%s/%s" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.postgres.port | quote) (.Values.postgres.database | quote))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PGRST_DB_URI" "value" (printf "postgres://authenticator:%s@%s-db:%s/%s" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.database.postgres.port | quote) (.Values.database.postgres.database | quote))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "PGRST_DB_SCHEMAS" "value" .Values.rest.dbSchemas) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "PGRST_DB_ANON_ROLE" "value" "anon") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "PGRST_JWT_SECRET" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "jwt-secret"))) }}

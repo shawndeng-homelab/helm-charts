@@ -31,7 +31,7 @@ spec:
         - name: DB_HOST
           value: "{{ include "supabase.fullname" . }}-db"
         - name: DB_PORT
-          value: {{ .Values.postgres.port | quote }}
+          value: {{ .Values.database.postgres.port | quote }}
         - name: DB_USER
           value: "supabase_admin"
         - name: DB_PASSWORD
@@ -40,7 +40,7 @@ spec:
               name: {{ include "supabase.fullname" . }}-secrets
               key: postgres-password
         - name: DB_NAME
-          value: {{ .Values.postgres.database | quote }}
+          value: {{ .Values.database.postgres.database | quote }}
         - name: DB_AFTER_CONNECT_QUERY
           value: "SET search_path TO _realtime"
         - name: DB_ENC_KEY

@@ -44,7 +44,7 @@ spec:
               name: {{ include "supabase.fullname" . }}-secrets
               key: jwt-secret
         - name: DATABASE_URL
-          value: "postgres://supabase_storage_admin:$(POSTGRES_PASSWORD)@{{ include "supabase.fullname" . }}-db:{{ .Values.postgres.port }}/{{ .Values.postgres.database }}"
+          value: "postgres://supabase_storage_admin:$(POSTGRES_PASSWORD)@{{ include "supabase.fullname" . }}-db:{{ .Values.database.postgres.port }}/{{ .Values.database.postgres.database }}"
         - name: FILE_SIZE_LIMIT
           value: {{ .Values.storage.fileSizeLimit | quote }}
         - name: STORAGE_BACKEND

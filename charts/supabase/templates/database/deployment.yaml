@@ -54,29 +54,19 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         ports:
-        - containerPort: {{ .Values.postgres.port }}
+        - containerPort: {{ .Values.database.postgres.port }}
           name: postgresql
         env:
         - name: POSTGRES_HOST
           value: "/var/run/postgresql"
-        - name: PGPORT
-          value: {{ .Values.postgres.port | quote }}
         - name: POSTGRES_PORT
-          value: {{ .Values.postgres.port | quote }}
-        - name: PGPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "supabase.secretName" . }}
-              key: postgres-password
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "supabase.secretName" . }}
-              key: postgres-password
-        - name: PGDATABASE
-          value: {{ .Values.postgres.database | quote }}
+          value: {{ .Values.database.postgres.port | quote }}
+        - name: PGPORT
+          value: {{ .Values.database.postgres.port | quote }}
         - name: POSTGRES_DB
-          value: {{ .Values.postgres.database | quote }}
+          value: {{ .Values.database.postgres.database | quote }}
+        - name: PGDATABASE
+          value: {{ .Values.database.postgres.database | quote }}
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:

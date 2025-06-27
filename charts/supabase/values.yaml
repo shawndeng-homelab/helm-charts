@@ -24,9 +24,6 @@ global:
 # postgres:
 #   port: 5432
 #   database: supabase
-postgres:
-  port: 5432
-  database: postgres
 
 # Secrets configuration
 # 各服务用到的敏感信息，建议通过 secret 管理
@@ -434,39 +431,6 @@ meta:
     periodSeconds: 5
   extraEnv: []
 
-# Analytics service configuration
-# 日志与分析服务
-# 示例：
-# analytics:
-#   enabled: true
-#   image:
-#     repository: supabase/logflare
-#     tag: 1.14.2
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-analytics:
-  enabled: true
-  replicaCount: 1
-  image:
-    repository: supabase/logflare
-    tag: "1.14.2"
-    pullPolicy: IfNotPresent
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
 # Functions service configuration
 # Edge Functions 服务
 # 示例：
@@ -510,6 +474,39 @@ functions:
     periodSeconds: 5
   extraEnv: []
 
+# Analytics service configuration
+# 日志与分析服务
+# 示例：
+# analytics:
+#   enabled: true
+#   image:
+#     repository: supabase/logflare
+#     tag: 1.14.2
+#   extraEnv:
+#     - name: TZ
+#       value: Asia/Shanghai
+analytics:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/logflare
+    tag: "1.14.2"
+    pullPolicy: IfNotPresent
+  resources: {}
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  extraEnv: []
+
 # Database configuration
 # PostgreSQL 数据库
 # 示例：
@@ -530,6 +527,10 @@ database:
     repository: supabase/postgres
     tag: "15.8.1.060"
     pullPolicy: IfNotPresent
+  # PostgreSQL 相关配置
+  postgres:
+    port: 5432
+    database: postgres
   jwtExpiry: "3600"
   persistence:
     enabled: true

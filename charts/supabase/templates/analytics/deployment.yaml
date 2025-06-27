@@ -31,15 +31,18 @@ spec:
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_USERNAME" "value" "supabase_admin") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_DATABASE" "value" "_supabase") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_HOSTNAME" "value" (printf "%s-db" (include "supabase.fullname" .))) }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "DB_PORT" "value" (.Values.postgres.port | quote)) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DB_PORT" "value" (.Values.database.postgres.port | quote)) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DB_USER" "value" "supabase_admin") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "postgres-password"))) }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "DB_SCHEMA" "value" "_analytics") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DB_NAME" "value" "postgres") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DB_HOST" "value" (printf "%s-db" (include "supabase.fullname" .))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DATABASE_URL" "value" (printf "ecto://supabase_admin:%s@%s-db:%s/_supabase" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.database.postgres.port | quote))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "LOGFLARE_PUBLIC_ACCESS_TOKEN" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "logflare-public-access-token"))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "LOGFLARE_PRIVATE_ACCESS_TOKEN" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "logflare-private-access-token"))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "LOGFLARE_SINGLE_TENANT" "value" "true") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "LOGFLARE_SUPABASE_MODE" "value" "true") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "LOGFLARE_MIN_CLUSTER_SIZE" "value" "1") }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_BACKEND_URL" "value" (printf "postgresql://supabase_admin:%s@%s-db:%s/_supabase" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.postgres.port | quote))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_BACKEND_URL" "value" (printf "postgresql://supabase_admin:%s@%s-db:%s/_supabase" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.database.postgres.port | quote))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_BACKEND_SCHEMA" "value" "_analytics") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "LOGFLARE_FEATURE_FLAG_OVERRIDE" "value" "multibackend=true") }}
         {{- include "supabase.envVars" (dict "env" $defaultEnv "overrides" .Values.analytics.envOverrides) | nindent 8 }}
