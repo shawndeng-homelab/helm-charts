@@ -124,6 +124,66 @@ entries:
       licenses: Apache-2.0
     apiVersion: v2
     appVersion: 1.24.7
+    created: "2025-06-27T08:24:04.042078005Z"
+    dependencies:
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 16.x.x
+    - condition: kong.enabled
+      name: kong
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 12.x.x
+    - name: common
+      repository: oci://registry-1.docker.io/bitnamicharts
+      tags:
+      - bitnami-common
+      version: 2.x.x
+    deprecated: true
+    description: DEPRECATED Supabase is an open source Firebase alternative. Provides
+      all the necessary backend features to build your application in a scalable way.
+      Uses PostgreSQL as datastore.
+    digest: 9fc1afae014b94ddcace33da9b2f901c75b691a6fe423d23230e588679a6969a
+    home: https://bitnami.com
+    icon: https://bitnami.com/assets/stacks/supabase/img/supabase-stack-220x234.png
+    keywords:
+    - development
+    - dashboards
+    maintainers:
+    - name: Broadcom, Inc. All Rights Reserved.
+      url: https://github.com/bitnami/charts
+    name: supabase
+    sources:
+    - https://github.com/bitnami/charts/tree/main/bitnami/supabase
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/supabase-5.3.8/supabase-5.3.8.tgz
+    version: 5.3.8
+  - annotations:
+      category: CMS
+      images: |
+        - name: gotrue
+          image: docker.io/bitnami/gotrue:2.159.1-debian-12-r0
+        - name: jwt-cli
+          image: docker.io/bitnami/jwt-cli:6.1.1-debian-12-r0
+        - name: kubectl
+          image: docker.io/bitnami/kubectl:1.31.0-debian-12-r1
+        - name: os-shell
+          image: docker.io/bitnami/os-shell:12-debian-12-r28
+        - name: postgrest
+          image: docker.io/bitnami/postgrest:11.2.2-debian-12-r32
+        - name: supabase-postgres
+          image: docker.io/bitnami/supabase-postgres:15.6.1-debian-12-r20
+        - name: supabase-postgres-meta
+          image: docker.io/bitnami/supabase-postgres-meta:0.84.0-debian-12-r0
+        - name: supabase-realtime
+          image: docker.io/bitnami/supabase-realtime:2.30.26-debian-12-r0
+        - name: supabase-storage
+          image: docker.io/bitnami/supabase-storage:1.10.3-debian-12-r0
+        - name: supabase-studio
+          image: docker.io/bitnami/supabase-studio:1.24.7-debian-12-r0
+      licenses: Apache-2.0
+    apiVersion: v2
+    appVersion: 1.24.7
     created: "2025-06-23T15:40:12.839373691Z"
     dependencies:
     - condition: postgresql.enabled
@@ -218,4 +278,4 @@ entries:
     urls:
     - https://github.com/shawndeng-homelab/helm-charts/releases/download/supabase-5.3.6/supabase-5.3.6.tgz
     version: 5.3.6
-generated: "2025-06-23T15:40:12.83938898Z"
+generated: "2025-06-27T08:24:04.042100427Z"
