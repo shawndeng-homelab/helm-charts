@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "supabase.fullname" . }}-imgproxy
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: imgproxy
+spec:
+  replicas: {{ .Values.imgproxy.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "supabase.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: imgproxy
+  template:
+    metadata:
+      labels:
+        {{- include "supabase.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: imgproxy
+    spec:
+      containers:
+      - name: imgproxy
+        image: {{ .Values.imgproxy.image.repository }}:{{ .Values.imgproxy.image.tag }}
+        imagePullPolicy: {{ .Values.imgproxy.image.pullPolicy }}
+        ports:
+        - containerPort: 5001
+          name: http
+        env:
+        - name: IMGPROXY_BIND
+          value: ":5001"
+        - name: IMGPROXY_LOCAL_FILESYSTEM_ROOT
+          value: "/"
+        - name: IMGPROXY_USE_ETAG
+          value: "true"
+        - name: IMGPROXY_ENABLE_WEBP_DETECTION
+          value: {{ .Values.imgproxy.enableWebpDetection | quote }}
+        {{- with .Values.imgproxy.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        volumeMounts:
+        - name: storage-data
+          mountPath: /var/lib/storage
+        livenessProbe:
+          exec:
+            command:
+            - imgproxy
+            - health
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - imgproxy
+            - health
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          {{- toYaml .Values.imgproxy.resources | nindent 10 }}
+      volumes:
+      - name: storage-data
+        {{- if .Values.storage.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "supabase.fullname" . }}-storage-pvc
+        {{- else }}
+        emptyDir: {}
+        {{- end }} 

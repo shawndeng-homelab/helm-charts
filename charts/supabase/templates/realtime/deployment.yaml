@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "supabase.fullname" . }}-realtime
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: realtime
+spec:
+  replicas: {{ .Values.realtime.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "supabase.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: realtime
+  template:
+    metadata:
+      labels:
+        {{- include "supabase.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: realtime
+    spec:
+      containers:
+      - name: realtime
+        image: {{ .Values.realtime.image.repository }}:{{ .Values.realtime.image.tag }}
+        imagePullPolicy: {{ .Values.realtime.image.pullPolicy }}
+        ports:
+        - containerPort: 4000
+          name: http
+        env:
+        - name: PORT
+          value: "4000"
+        - name: DB_HOST
+          value: "{{ include "supabase.fullname" . }}-db"
+        - name: DB_PORT
+          value: {{ .Values.postgres.port | quote }}
+        - name: DB_USER
+          value: "supabase_admin"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: postgres-password
+        - name: DB_NAME
+          value: {{ .Values.postgres.database | quote }}
+        - name: DB_AFTER_CONNECT_QUERY
+          value: "SET search_path TO _realtime"
+        - name: DB_ENC_KEY
+          value: "supabaserealtime"
+        - name: API_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: jwt-secret
+        - name: SECRET_KEY_BASE
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: secret-key-base
+        - name: ERL_AFLAGS
+          value: "-proto_dist inet_tcp"
+        - name: DNS_NODES
+          value: "''"
+        - name: RLIMIT_NOFILE
+          value: "10000"
+        - name: APP_NAME
+          value: "realtime"
+        - name: SEED_SELF_HOST
+          value: "true"
+        - name: RUN_JANITOR
+          value: "true"
+        {{- with .Values.realtime.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /api/tenants/realtime-dev/health
+            port: http
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer $(ANON_KEY)"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/tenants/realtime-dev/health
+            port: http
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer $(ANON_KEY)"
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          {{- toYaml .Values.realtime.resources | nindent 10 }} 

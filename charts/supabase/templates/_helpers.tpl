@@ -60,3 +60,52 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Get the secret name to use
+*/}}
+{{- define "supabase.secretName" -}}
+{{- if .Values.externalSecrets.enabled }}
+{{- .Values.externalSecrets.secretName }}
+{{- else }}
+{{- include "supabase.fullname" . }}-secrets
+{{- end }}
+{{- end }}
+
+{{/*
+Generate environment variables with overrides support
+Usage: {{ include "supabase.envVars" (dict "env" $defaultEnv "overrides" $envOverrides) }}
+*/}}
+{{- define "supabase.envVars" -}}
+{{- $env := .env | default list }}
+{{- $overrides := .overrides | default dict }}
+{{- $result := list }}
+{{- $overrideKeys := list }}
+
+{{- /* Collect override keys */ -}}
+{{- range $key, $value := $overrides }}
+{{- $overrideKeys = append $overrideKeys $key }}
+{{- end }}
+
+{{- /* Process default environment variables */ -}}
+{{- range $env }}
+{{- $shouldInclude := true }}
+{{- /* Check if this env var should be overridden */ -}}
+{{- range $overrideKeys }}
+{{- if eq . $.name }}
+{{- $shouldInclude = false }}
+{{- break }}
+{{- end }}
+{{- end }}
+{{- if $shouldInclude }}
+{{- $result = append $result . }}
+{{- end }}
+{{- end }}
+
+{{- /* Add overrides */ -}}
+{{- range $key, $value := $overrides }}
+{{- $result = append $result (dict "name" $key "value" $value) }}
+{{- end }}
+
+{{- toYaml $result }}
+{{- end }}

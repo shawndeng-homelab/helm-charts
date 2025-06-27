@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "supabase.fullname" . }}-functions
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: functions
+spec:
+  replicas: {{ .Values.functions.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "supabase.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: functions
+  template:
+    metadata:
+      labels:
+        {{- include "supabase.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: functions
+    spec:
+      containers:
+      - name: functions
+        image: {{ .Values.functions.image.repository }}:{{ .Values.functions.image.tag }}
+        imagePullPolicy: {{ .Values.functions.image.pullPolicy }}
+        ports:
+        - containerPort: 9000
+          name: http
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: jwt-secret
+        - name: SUPABASE_URL
+          value: "http://{{ include "supabase.fullname" . }}-kong:8000"
+        - name: SUPABASE_ANON_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: anon-key
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: service-role-key
+        - name: SUPABASE_DB_URL
+          value: "postgresql://postgres:$(POSTGRES_PASSWORD)@{{ include "supabase.fullname" . }}-db:{{ .Values.postgres.port }}/{{ .Values.postgres.database }}"
+        - name: VERIFY_JWT
+          value: {{ .Values.functions.verifyJwt | quote }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: postgres-password
+        {{- with .Values.functions.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        volumeMounts:
+        - name: functions-data
+          mountPath: /home/deno/functions
+        command:
+        - "start"
+        - "--main-service"
+        - "/home/deno/functions/main"
+        resources:
+          {{- toYaml .Values.functions.resources | nindent 10 }}
+      volumes:
+      - name: functions-data
+        {{- if .Values.functions.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "supabase.fullname" . }}-functions-pvc
+        {{- else }}
+        emptyDir: {}
+        {{- end }} 

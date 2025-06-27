@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "supabase.fullname" . }}-pooler
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pooler
+spec:
+  replicas: {{ .Values.pooler.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "supabase.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: pooler
+  template:
+    metadata:
+      labels:
+        {{- include "supabase.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: pooler
+    spec:
+      containers:
+      - name: pooler
+        image: {{ .Values.pooler.image.repository }}:{{ .Values.pooler.image.tag }}
+        imagePullPolicy: {{ .Values.pooler.image.pullPolicy }}
+        ports:
+        - containerPort: 4000
+          name: http
+        - containerPort: {{ .Values.postgres.port }}
+          name: postgresql
+        - containerPort: {{ .Values.pooler.proxyPort }}
+          name: proxy
+        env:
+        - name: PORT
+          value: "4000"
+        - name: POSTGRES_PORT
+          value: {{ .Values.postgres.port | quote }}
+        - name: POSTGRES_DB
+          value: {{ .Values.postgres.database | quote }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: postgres-password
+        - name: DATABASE_URL
+          value: "ecto://supabase_admin:$(POSTGRES_PASSWORD)@{{ include "supabase.fullname" . }}-db:{{ .Values.postgres.port }}/_supabase"
+        - name: CLUSTER_POSTGRES
+          value: "true"
+        - name: SECRET_KEY_BASE
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: secret-key-base
+        - name: VAULT_ENC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: vault-enc-key
+        - name: API_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: jwt-secret
+        - name: METRICS_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.fullname" . }}-secrets
+              key: jwt-secret
+        - name: REGION
+          value: "local"
+        - name: ERL_AFLAGS
+          value: "-proto_dist inet_tcp"
+        - name: POOLER_TENANT_ID
+          value: {{ .Values.pooler.tenantId | quote }}
+        - name: POOLER_DEFAULT_POOL_SIZE
+          value: {{ .Values.pooler.defaultPoolSize | quote }}
+        - name: POOLER_MAX_CLIENT_CONN
+          value: {{ .Values.pooler.maxClientConn | quote }}
+        - name: POOLER_POOL_MODE
+          value: "transaction"
+        - name: DB_POOL_SIZE
+          value: {{ .Values.pooler.dbPoolSize | quote }}
+        {{- with .Values.pooler.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        volumeMounts:
+        - name: pooler-config
+          mountPath: /etc/pooler/pooler.exs
+          subPath: pooler.exs
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        command:
+        - "/bin/sh"
+        - "-c"
+        - "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"
+        resources:
+          {{- toYaml .Values.pooler.resources | nindent 10 }}
+      volumes:
+      - name: pooler-config
+        configMap:
+          name: {{ include "supabase.fullname" . }}-pooler-config 
