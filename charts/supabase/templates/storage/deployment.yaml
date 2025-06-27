@@ -1,3 +1,4 @@
+{{- if .Values.storage.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -110,4 +111,5 @@ spec:
           claimName: {{ include "supabase.fullname" . }}-storage-pvc
         {{- else }}
         emptyDir: {}
-        {{- end }} 
+        {{- end }}
+{{- end }} 

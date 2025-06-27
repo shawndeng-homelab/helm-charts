@@ -1,0 +1,211 @@
+{{- if .Values.database.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "supabase.fullname" . }}-init-scripts
+  labels:
+    {{- include "supabase.labels" . | nindent 4 }}
+data:
+  # JWT configuration
+  jwt.sql: |
+    ALTER SYSTEM SET jwt_secret = '{{ .Values.secrets.jwtSecret }}';
+    ALTER SYSTEM SET jwt_exp = {{ .Values.database.jwtExpiry }};
+    SELECT pg_reload_conf();
+
+  # Realtime extension
+  realtime.sql: |
+    CREATE EXTENSION IF NOT EXISTS "realtime" WITH SCHEMA "extensions";
+
+  # Webhooks setup
+  webhooks.sql: |
+    -- Enable the pg_net extension
+    CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
+
+    -- Create the webhooks schema
+    CREATE SCHEMA IF NOT EXISTS "supabase_functions";
+
+    -- Create the webhooks table
+    CREATE TABLE IF NOT EXISTS "supabase_functions"."hooks" (
+      "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+      "name" text NOT NULL,
+      "url" text NOT NULL,
+      "headers" jsonb DEFAULT '{}'::jsonb,
+      "events" text[] DEFAULT '{}',
+      "type" text DEFAULT 'http'::text,
+      "function_name" text,
+      "created_at" timestamp with time zone DEFAULT now(),
+      "updated_at" timestamp with time zone DEFAULT now()
+    );
+
+    -- Create the webhook_logs table
+    CREATE TABLE IF NOT EXISTS "supabase_functions"."hook_logs" (
+      "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+      "hook_id" uuid REFERENCES "supabase_functions"."hooks"("id") ON DELETE CASCADE,
+      "event" text NOT NULL,
+      "payload" jsonb NOT NULL,
+      "response" jsonb,
+      "status" integer,
+      "created_at" timestamp with time zone DEFAULT now()
+    );
+
+    -- Create indexes
+    CREATE INDEX IF NOT EXISTS "hooks_name_idx" ON "supabase_functions"."hooks"("name");
+    CREATE INDEX IF NOT EXISTS "hook_logs_hook_id_idx" ON "supabase_functions"."hook_logs"("hook_id");
+    CREATE INDEX IF NOT EXISTS "hook_logs_created_at_idx" ON "supabase_functions"."hook_logs"("created_at");
+
+    -- Create the webhook function
+    CREATE OR REPLACE FUNCTION "supabase_functions"."http_request"(
+      "url" text,
+      "method" text DEFAULT 'GET'::text,
+      "headers" jsonb DEFAULT '{}'::jsonb,
+      "body" text DEFAULT ''::text
+    )
+    RETURNS jsonb
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    AS $$
+    DECLARE
+      "response" jsonb;
+    BEGIN
+      SELECT content::jsonb INTO "response"
+      FROM extensions.http((
+        method,
+        url,
+        headers,
+        body,
+        30
+      ));
+      RETURN "response";
+    END;
+    $$;
+
+    -- Create the webhook trigger function
+    CREATE OR REPLACE FUNCTION "supabase_functions"."handle_webhook"()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    AS $$
+    DECLARE
+      "hook" record;
+      "payload" jsonb;
+      "response" jsonb;
+      "status" integer;
+    BEGIN
+      -- Get the webhook configuration
+      SELECT * INTO "hook"
+      FROM "supabase_functions"."hooks"
+      WHERE "events" @> ARRAY[TG_OP]
+      AND "name" = TG_TABLE_NAME;
+
+      IF NOT FOUND THEN
+        RETURN COALESCE(NEW, OLD);
+      END IF;
+
+      -- Build the payload
+      "payload" := jsonb_build_object(
+        'type', TG_OP,
+        'table', TG_TABLE_NAME,
+        'schema', TG_TABLE_SCHEMA,
+        'record', CASE
+          WHEN TG_OP = 'DELETE' THEN to_jsonb(OLD)
+          ELSE to_jsonb(NEW)
+        END,
+        'old_record', CASE
+          WHEN TG_OP IN ('UPDATE', 'DELETE') THEN to_jsonb(OLD)
+          ELSE NULL
+        END
+      );
+
+      -- Make the HTTP request
+      SELECT content::jsonb INTO "response"
+      FROM extensions.http((
+        'POST',
+        "hook"."url",
+        "hook"."headers",
+        "payload"::text,
+        30
+      ));
+
+      -- Extract status code
+      "status" := ("response"->>'status')::integer;
+
+      -- Log the webhook call
+      INSERT INTO "supabase_functions"."hook_logs" (
+        "hook_id",
+        "event",
+        "payload",
+        "response",
+        "status"
+      ) VALUES (
+        "hook"."id",
+        TG_OP,
+        "payload",
+        "response",
+        "status"
+      );
+
+      RETURN COALESCE(NEW, OLD);
+    END;
+    $$;
+
+    -- Grant necessary permissions
+    GRANT USAGE ON SCHEMA "supabase_functions" TO "anon";
+    GRANT USAGE ON SCHEMA "supabase_functions" TO "authenticated";
+    GRANT USAGE ON SCHEMA "supabase_functions" TO "service_role";
+
+    GRANT SELECT ON "supabase_functions"."hooks" TO "anon";
+    GRANT SELECT ON "supabase_functions"."hooks" TO "authenticated";
+    GRANT SELECT ON "supabase_functions"."hooks" TO "service_role";
+
+    GRANT SELECT ON "supabase_functions"."hook_logs" TO "anon";
+    GRANT SELECT ON "supabase_functions"."hook_logs" TO "authenticated";
+    GRANT SELECT ON "supabase_functions"."hook_logs" TO "service_role";
+
+    GRANT EXECUTE ON FUNCTION "supabase_functions"."http_request"(text, text, jsonb, text) TO "anon";
+    GRANT EXECUTE ON FUNCTION "supabase_functions"."http_request"(text, text, jsonb, text) TO "authenticated";
+    GRANT EXECUTE ON FUNCTION "supabase_functions"."http_request"(text, text, jsonb, text) TO "service_role";
+
+  # Roles setup
+  roles.sql: |
+    -- Create roles
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
+        CREATE ROLE anon;
+      END IF;
+    END
+    $$;
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated;
+      END IF;
+    END
+    $$;
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
+        CREATE ROLE service_role;
+      END IF;
+    END
+    $$;
+
+    -- Grant roles
+    GRANT anon TO postgres;
+    GRANT authenticated TO postgres;
+    GRANT service_role TO postgres;
+
+  # Supabase internal schema
+  _supabase.sql: |
+    CREATE SCHEMA IF NOT EXISTS "_supabase";
+
+  # Analytics logs
+  logs.sql: |
+    CREATE SCHEMA IF NOT EXISTS "_analytics";
+
+  # Pooler support
+  pooler.sql: |
+    CREATE SCHEMA IF NOT EXISTS "_pooler";
+{{- end }} 

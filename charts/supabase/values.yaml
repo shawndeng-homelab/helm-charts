@@ -77,10 +77,15 @@ externalSecrets:
   secretName: ""  # 外部 Secret 的名称
   namespace: ""   # 外部 Secret 的命名空间，留空使用当前命名空间
 
+# =============================================================================
+# 按照官方 docker-compose 顺序排列的服务配置
+# =============================================================================
+
 # Studio configuration
 # Supabase Studio 管理界面
 # 示例：
 # studio:
+#   enabled: true
 #   replicaCount: 1
 #   image:
 #     repository: supabase/studio
@@ -97,6 +102,7 @@ externalSecrets:
 #     - name: TZ
 #       value: Asia/Shanghai
 studio:
+  enabled: true
   replicaCount: 1
   image:
     repository: supabase/studio
@@ -133,6 +139,7 @@ studio:
 # Kong API 网关
 # 示例：
 # kong:
+#   enabled: true
 #   replicaCount: 1
 #   image:
 #     repository: kong
@@ -146,6 +153,7 @@ studio:
 #     - name: TZ
 #       value: Asia/Shanghai
 kong:
+  enabled: true
   replicaCount: 1
   image:
     repository: kong
@@ -174,6 +182,7 @@ kong:
 # 用户认证服务
 # 示例：
 # auth:
+#   enabled: true
 #   image:
 #     repository: supabase/gotrue
 #     tag: v2.174.0
@@ -192,6 +201,7 @@ kong:
 #     - name: TZ
 #       value: Asia/Shanghai
 auth:
+  enabled: true
   replicaCount: 1
   image:
     repository: supabase/gotrue
@@ -233,6 +243,7 @@ auth:
 # PostgREST 服务
 # 示例：
 # rest:
+#   enabled: true
 #   image:
 #     repository: postgrest/postgrest
 #     tag: v12.2.12
@@ -242,6 +253,7 @@ auth:
 #     - name: TZ
 #       value: Asia/Shanghai
 rest:
+  enabled: true
   replicaCount: 1
   image:
     repository: postgrest/postgrest
@@ -268,6 +280,7 @@ rest:
 # Realtime websocket 服务
 # 示例：
 # realtime:
+#   enabled: true
 #   image:
 #     repository: supabase/realtime
 #     tag: v2.34.47
@@ -275,6 +288,7 @@ rest:
 #     - name: TZ
 #       value: Asia/Shanghai
 realtime:
+  enabled: true
   replicaCount: 1
   image:
     repository: supabase/realtime
@@ -299,6 +313,7 @@ realtime:
 # 文件存储服务，支持本地和 S3
 # 示例：
 # storage:
+#   enabled: true
 #   backend: "s3"
 #   fileSizeLimit: "52428800"
 #   s3:
@@ -312,6 +327,7 @@ realtime:
 #     - name: TZ
 #       value: Asia/Shanghai
 storage:
+  enabled: true
   replicaCount: 1
   image:
     repository: supabase/storage-api
@@ -352,6 +368,7 @@ storage:
 # 图片代理服务
 # 示例：
 # imgproxy:
+#   enabled: true
 #   image:
 #     repository: darthsim/imgproxy
 #     tag: v3.8.0
@@ -360,6 +377,7 @@ storage:
 #     - name: TZ
 #       value: Asia/Shanghai
 imgproxy:
+  enabled: true
   replicaCount: 1
   image:
     repository: darthsim/imgproxy
@@ -387,6 +405,7 @@ imgproxy:
 # 数据库元数据服务
 # 示例：
 # meta:
+#   enabled: true
 #   image:
 #     repository: supabase/postgres-meta
 #     tag: v0.89.3
@@ -394,6 +413,7 @@ imgproxy:
 #     - name: TZ
 #       value: Asia/Shanghai
 meta:
+  enabled: true
   replicaCount: 1
   image:
     repository: supabase/postgres-meta
@@ -414,10 +434,44 @@ meta:
     periodSeconds: 5
   extraEnv: []
 
+# Analytics service configuration
+# 日志与分析服务
+# 示例：
+# analytics:
+#   enabled: true
+#   image:
+#     repository: supabase/logflare
+#     tag: 1.14.2
+#   extraEnv:
+#     - name: TZ
+#       value: Asia/Shanghai
+analytics:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: supabase/logflare
+    tag: "1.14.2"
+    pullPolicy: IfNotPresent
+  resources: {}
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  extraEnv: []
+
 # Functions service configuration
 # Edge Functions 服务
 # 示例：
 # functions:
+#   enabled: true
 #   image:
 #     repository: supabase/edge-runtime
 #     tag: v1.67.4
@@ -429,6 +483,7 @@ meta:
 #     - name: TZ
 #       value: Asia/Shanghai
 functions:
+  enabled: true
   replicaCount: 1
   image:
     repository: supabase/edge-runtime
@@ -455,41 +510,11 @@ functions:
     periodSeconds: 5
   extraEnv: []
 
-# Analytics service configuration
-# 日志与分析服务
-# 示例：
-# analytics:
-#   image:
-#     repository: supabase/logflare
-#     tag: 1.14.2
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-analytics:
-  replicaCount: 1
-  image:
-    repository: supabase/logflare
-    tag: "1.14.2"
-    pullPolicy: IfNotPresent
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
 # Database configuration
 # PostgreSQL 数据库
 # 示例：
 # database:
+#   enabled: true
 #   image:
 #     repository: supabase/postgres
 #     tag: 15.8.1.060
@@ -500,6 +525,7 @@ analytics:
 #     - name: TZ
 #       value: Asia/Shanghai
 database:
+  enabled: true
   image:
     repository: supabase/postgres
     tag: "15.8.1.060"
@@ -510,6 +536,15 @@ database:
     accessMode: ReadWriteOnce
     size: 20Gi
     storageClass: ""
+  # Pod 级安全上下文
+  podSecurityContext:
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+  # 容器级安全上下文
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
   resources: {}
   livenessProbe:
     exec:
@@ -537,6 +572,7 @@ database:
 # 连接池服务
 # 示例：
 # pooler:
+#   enabled: true
 #   image:
 #     repository: supabase/supavisor
 #     tag: 2.5.1
@@ -548,6 +584,7 @@ database:
 #     - name: TZ
 #       value: Asia/Shanghai
 pooler:
+  enabled: true
   replicaCount: 1
   image:
     repository: supabase/supavisor

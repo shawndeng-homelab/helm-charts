@@ -1,3 +1,4 @@
+{{- if .Values.meta.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,23 +26,21 @@ spec:
         - containerPort: 8080
           name: http
         env:
-        - name: PG_META_PORT
-          value: "8080"
-        - name: PG_META_DB_HOST
-          value: "{{ include "supabase.fullname" . }}-db"
-        - name: PG_META_DB_PORT
-          value: {{ .Values.postgres.port | quote }}
-        - name: PG_META_DB_NAME
-          value: {{ .Values.postgres.database | quote }}
-        - name: PG_META_DB_USER
-          value: "supabase_admin"
-        - name: PG_META_DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "supabase.fullname" . }}-secrets
-              key: postgres-password
+        {{- $defaultEnv := list }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_PORT" "value" "8080") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_HOST" "value" (printf "%s-db" (include "supabase.fullname" .))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_PORT" "value" (.Values.postgres.port | quote)) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_NAME" "value" .Values.postgres.database) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_USER" "value" "supabase_admin") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PG_META_DB_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "postgres-password"))) }}
+        {{- include "supabase.envVars" (dict "env" $defaultEnv "overrides" .Values.meta.envOverrides) | nindent 8 }}
         {{- with .Values.meta.extraEnv }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+        livenessProbe:
+          {{- toYaml .Values.meta.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.meta.readinessProbe | nindent 10 }}
         resources:
-          {{- toYaml .Values.meta.resources | nindent 10 }} 
+          {{- toYaml .Values.meta.resources | nindent 10 }}
+{{- end }} 

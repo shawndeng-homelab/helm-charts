@@ -1,3 +1,4 @@
+{{- if .Values.kong.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -51,4 +52,5 @@ spec:
       volumes:
       - name: kong-config
         configMap:
-          name: {{ include "supabase.fullname" . }}-kong-config 
+          name: {{ include "supabase.fullname" . }}-kong-config
+{{- end }} 

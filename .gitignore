@@ -1,0 +1,6 @@
+volumes/db/data
+volumes/storage
+.env
+tmp/
+test.http
+docker-compose.override.yml

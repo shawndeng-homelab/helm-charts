@@ -1,3 +1,4 @@
+{{- if .Values.rest.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -14,4 +15,5 @@ spec:
       name: http
   selector:
     {{- include "supabase.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: rest 
+    app.kubernetes.io/component: rest
+{{- end }} 

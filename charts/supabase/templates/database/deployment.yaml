@@ -1,3 +1,4 @@
+{{- if .Values.database.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,10 +18,41 @@ spec:
         {{- include "supabase.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: database
     spec:
+      {{- with .Values.database.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+      - name: init-db
+        image: {{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}
+        command:
+        - sh
+        - -c
+        - |
+          if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
+            echo "Initializing database..."
+            mkdir -p /var/lib/postgresql/data
+            chown -R 999:999 /var/lib/postgresql/data
+            chmod 700 /var/lib/postgresql/data
+          else
+            echo "Database already initialized, fixing permissions..."
+            chown -R 999:999 /var/lib/postgresql/data
+            chmod 700 /var/lib/postgresql/data
+          fi
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
       containers:
       - name: postgres
         image: {{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}
         imagePullPolicy: {{ .Values.database.image.pullPolicy }}
+        {{- with .Values.database.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         ports:
         - containerPort: {{ .Values.postgres.port }}
           name: postgresql
@@ -34,12 +66,12 @@ spec:
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ include "supabase.fullname" . }}-secrets
+              name: {{ include "supabase.secretName" . }}
               key: postgres-password
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ include "supabase.fullname" . }}-secrets
+              name: {{ include "supabase.secretName" . }}
               key: postgres-password
         - name: PGDATABASE
           value: {{ .Values.postgres.database | quote }}
@@ -48,7 +80,7 @@ spec:
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
-              name: {{ include "supabase.fullname" . }}-secrets
+              name: {{ include "supabase.secretName" . }}
               key: jwt-secret
         - name: JWT_EXP
           value: {{ .Values.database.jwtExpiry | quote }}
@@ -104,4 +136,5 @@ spec:
           name: {{ include "supabase.fullname" . }}-postgres-config
       - name: init-scripts
         configMap:
-          name: {{ include "supabase.fullname" . }}-init-scripts 
+          name: {{ include "supabase.fullname" . }}-init-scripts
+{{- end }} 

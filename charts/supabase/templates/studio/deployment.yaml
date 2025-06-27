@@ -1,3 +1,4 @@
+{{- if .Values.studio.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -53,4 +54,5 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         resources:
-          {{- toYaml .Values.studio.resources | nindent 10 }} 
+          {{- toYaml .Values.studio.resources | nindent 10 }}
+{{- end }} 

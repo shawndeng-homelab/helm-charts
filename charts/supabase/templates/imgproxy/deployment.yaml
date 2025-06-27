@@ -1,3 +1,4 @@
+{{- if .Values.imgproxy.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,14 +26,12 @@ spec:
         - containerPort: 5001
           name: http
         env:
-        - name: IMGPROXY_BIND
-          value: ":5001"
-        - name: IMGPROXY_LOCAL_FILESYSTEM_ROOT
-          value: "/"
-        - name: IMGPROXY_USE_ETAG
-          value: "true"
-        - name: IMGPROXY_ENABLE_WEBP_DETECTION
-          value: {{ .Values.imgproxy.enableWebpDetection | quote }}
+        {{- $defaultEnv := list }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "IMGPROXY_BIND" "value" ":5001") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "IMGPROXY_LOCAL_FILESYSTEM_ROOT" "value" "/") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "IMGPROXY_USE_ETAG" "value" "true") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "IMGPROXY_ENABLE_WEBP_DETECTION" "value" .Values.imgproxy.enableWebpDetection) }}
+        {{- include "supabase.envVars" (dict "env" $defaultEnv "overrides" .Values.imgproxy.envOverrides) | nindent 8 }}
         {{- with .Values.imgproxy.extraEnv }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -62,4 +61,5 @@ spec:
           claimName: {{ include "supabase.fullname" . }}-storage-pvc
         {{- else }}
         emptyDir: {}
-        {{- end }} 
+        {{- end }}
+{{- end }} 

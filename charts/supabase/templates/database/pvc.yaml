@@ -1,4 +1,4 @@
-{{- if .Values.database.persistence.enabled }}
+{{- if and .Values.database.enabled .Values.database.persistence.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,10 +9,10 @@ metadata:
 spec:
   accessModes:
     - {{ .Values.database.persistence.accessMode | quote }}
+  {{- if .Values.database.persistence.storageClass }}
+  storageClassName: {{ .Values.database.persistence.storageClass }}
+  {{- end }}
   resources:
     requests:
       storage: {{ .Values.database.persistence.size | quote }}
-  {{- if .Values.database.persistence.storageClass }}
-  storageClassName: {{ .Values.database.persistence.storageClass | quote }}
-  {{- end }}
 {{- end }} 

@@ -1,3 +1,4 @@
+{{- if .Values.pooler.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,88 +23,41 @@ spec:
         image: {{ .Values.pooler.image.repository }}:{{ .Values.pooler.image.tag }}
         imagePullPolicy: {{ .Values.pooler.image.pullPolicy }}
         ports:
-        - containerPort: 4000
-          name: http
-        - containerPort: {{ .Values.postgres.port }}
-          name: postgresql
-        - containerPort: {{ .Values.pooler.proxyPort }}
+        - containerPort: 6543
           name: proxy
+        - containerPort: 5432
+          name: postgresql
         env:
-        - name: PORT
-          value: "4000"
-        - name: POSTGRES_PORT
-          value: {{ .Values.postgres.port | quote }}
-        - name: POSTGRES_DB
-          value: {{ .Values.postgres.database | quote }}
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "supabase.fullname" . }}-secrets
-              key: postgres-password
-        - name: DATABASE_URL
-          value: "ecto://supabase_admin:$(POSTGRES_PASSWORD)@{{ include "supabase.fullname" . }}-db:{{ .Values.postgres.port }}/_supabase"
-        - name: CLUSTER_POSTGRES
-          value: "true"
-        - name: SECRET_KEY_BASE
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "supabase.fullname" . }}-secrets
-              key: secret-key-base
-        - name: VAULT_ENC_KEY
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "supabase.fullname" . }}-secrets
-              key: vault-enc-key
-        - name: API_JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "supabase.fullname" . }}-secrets
-              key: jwt-secret
-        - name: METRICS_JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "supabase.fullname" . }}-secrets
-              key: jwt-secret
-        - name: REGION
-          value: "local"
-        - name: ERL_AFLAGS
-          value: "-proto_dist inet_tcp"
-        - name: POOLER_TENANT_ID
-          value: {{ .Values.pooler.tenantId | quote }}
-        - name: POOLER_DEFAULT_POOL_SIZE
-          value: {{ .Values.pooler.defaultPoolSize | quote }}
-        - name: POOLER_MAX_CLIENT_CONN
-          value: {{ .Values.pooler.maxClientConn | quote }}
-        - name: POOLER_POOL_MODE
-          value: "transaction"
-        - name: DB_POOL_SIZE
-          value: {{ .Values.pooler.dbPoolSize | quote }}
+        {{- $defaultEnv := list }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PORT" "value" "4000") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_PORT" "value" (.Values.postgres.port | quote)) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_DB" "value" .Values.postgres.database) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "postgres-password"))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DATABASE_URL" "value" (printf "ecto://supabase_admin:%s@%s-db:%s/_supabase" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.postgres.port | quote))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "CLUSTER_POSTGRES" "value" "true") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "SECRET_KEY_BASE" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "secret-key-base"))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "VAULT_ENC_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "vault-enc-key"))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "API_JWT_SECRET" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "jwt-secret"))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "METRICS_JWT_SECRET" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "jwt-secret"))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "REGION" "value" "local") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "ERL_AFLAGS" "value" "-proto_dist inet_tcp") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "POOLER_TENANT_ID" "value" .Values.pooler.tenantId) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "POOLER_DEFAULT_POOL_SIZE" "value" .Values.pooler.defaultPoolSize) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "POOLER_MAX_CLIENT_CONN" "value" .Values.pooler.maxClientConn) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "POOLER_POOL_MODE" "value" "transaction") }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DB_POOL_SIZE" "value" .Values.pooler.dbPoolSize) }}
+        {{- include "supabase.envVars" (dict "env" $defaultEnv "overrides" .Values.pooler.envOverrides) | nindent 8 }}
         {{- with .Values.pooler.extraEnv }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-        volumeMounts:
-        - name: pooler-config
-          mountPath: /etc/pooler/pooler.exs
-          subPath: pooler.exs
         livenessProbe:
-          httpGet:
-            path: /api/health
-            port: http
-          initialDelaySeconds: 30
-          periodSeconds: 10
+          {{- toYaml .Values.pooler.livenessProbe | nindent 10 }}
         readinessProbe:
-          httpGet:
-            path: /api/health
-            port: http
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        command:
-        - "/bin/sh"
-        - "-c"
-        - "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"
+          {{- toYaml .Values.pooler.readinessProbe | nindent 10 }}
         resources:
           {{- toYaml .Values.pooler.resources | nindent 10 }}
       volumes:
       - name: pooler-config
         configMap:
           name: {{ include "supabase.fullname" . }}-pooler-config 
+{{- end }} 

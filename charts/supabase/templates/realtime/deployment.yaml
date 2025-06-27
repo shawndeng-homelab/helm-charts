@@ -1,3 +1,4 @@
+{{- if .Values.realtime.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -88,4 +89,5 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
         resources:
-          {{- toYaml .Values.realtime.resources | nindent 10 }} 
+          {{- toYaml .Values.realtime.resources | nindent 10 }}
+{{- end }} 
