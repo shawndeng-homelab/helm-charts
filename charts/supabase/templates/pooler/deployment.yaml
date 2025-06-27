@@ -31,9 +31,9 @@ spec:
         {{- $defaultEnv := list }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "PORT" "value" "4000") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_PORT" "value" (.Values.database.postgres.port | quote)) }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_DB" "value" .Values.database.postgres.database) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_DB" "value" (.Values.database.postgres.database | quote)) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "POSTGRES_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "postgres-password"))) }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "DATABASE_URL" "value" (printf "ecto://supabase_admin:%s@%s-db:%s/_supabase" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.database.postgres.port | quote))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DATABASE_URL" "value" (printf "postgresql://supabase_admin:%s@%s-db:%s/%s" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.database.postgres.port | quote) (.Values.database.postgres.database | quote))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "CLUSTER_POSTGRES" "value" "true") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "SECRET_KEY_BASE" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "secret-key-base"))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "VAULT_ENC_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "vault-enc-key"))) }}

@@ -31,7 +31,7 @@ spec:
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_USERNAME" "value" "supabase_admin") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_DATABASE" "value" "_supabase") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_HOSTNAME" "value" (printf "%s-db" (include "supabase.fullname" .))) }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "DB_PORT" "value" (.Values.database.postgres.port | quote)) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DB_PORT" "value" (.Values.database.postgres.port | toString)) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_USER" "value" "supabase_admin") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "postgres-password"))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "DB_NAME" "value" "postgres") }}

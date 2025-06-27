@@ -31,7 +31,7 @@ spec:
         {{- $defaultEnv = append $defaultEnv (dict "name" "GOTRUE_API_PORT" "value" "9999") }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "API_EXTERNAL_URL" "value" .Values.auth.apiExternalUrl) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "GOTRUE_DB_DRIVER" "value" "postgres") }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "GOTRUE_DB_DATABASE_URL" "value" (printf "postgres://supabase_auth_admin:%s@%s-db:%s/%s?sslmode=disable" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.database.postgres.port | quote) (.Values.database.postgres.database | quote))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "DATABASE_URL" "value" (printf "postgresql://supabase_auth_admin:%s@%s-db:%s/%s" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.database.postgres.port | quote) (.Values.database.postgres.database | quote))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "GOTRUE_SITE_URL" "value" .Values.auth.siteUrl) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "GOTRUE_URI_ALLOW_LIST" "value" .Values.auth.additionalRedirectUrls) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "GOTRUE_DISABLE_SIGNUP" "value" .Values.auth.disableSignup) }}

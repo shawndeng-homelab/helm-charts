@@ -31,7 +31,7 @@ spec:
         {{- $defaultEnv = append $defaultEnv (dict "name" "SUPABASE_URL" "value" (printf "http://%s-kong:8000" (include "supabase.fullname" .))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "SUPABASE_ANON_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "anon-key"))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "SUPABASE_SERVICE_ROLE_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" (include "supabase.secretName" .) "key" "service-role-key"))) }}
-        {{- $defaultEnv = append $defaultEnv (dict "name" "SUPABASE_DB_URL" "value" (printf "postgresql://postgres:%s@%s-db:%s/%s" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.database.postgres.port | quote) (.Values.database.postgres.database | quote))) }}
+        {{- $defaultEnv = append $defaultEnv (dict "name" "PGRST_DB_URI" "value" (printf "postgresql://supabase_admin:%s@%s-db:%s/%s" (.Values.secrets.postgresPassword | quote) (include "supabase.fullname" .) (.Values.database.postgres.port | quote) (.Values.database.postgres.database | quote))) }}
         {{- $defaultEnv = append $defaultEnv (dict "name" "VERIFY_JWT" "value" .Values.functions.verifyJwt) }}
         {{- include "supabase.envVars" (dict "env" $defaultEnv "overrides" .Values.functions.envOverrides) | nindent 8 }}
         {{- with .Values.functions.extraEnv }}
