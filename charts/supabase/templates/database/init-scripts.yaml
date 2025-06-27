@@ -5,25 +5,19 @@ metadata:
   name: {{ include "supabase.fullname" . }}-init-scripts
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
 data:
-  # JWT configuration
-  jwt.sql: |
-    ALTER SYSTEM SET jwt_secret = '{{ .Values.secrets.jwtSecret }}';
-    ALTER SYSTEM SET jwt_exp = {{ .Values.database.jwtExpiry }};
+  99-jwt.sql: |
+    ALTER SYSTEM SET jwt_secret = '$JWT_SECRET';
+    ALTER SYSTEM SET jwt_exp = $JWT_EXPIRY;
     SELECT pg_reload_conf();
-
-  # Realtime extension
-  realtime.sql: |
+  99-realtime.sql: |
     CREATE EXTENSION IF NOT EXISTS "realtime" WITH SCHEMA "extensions";
-
-  # Webhooks setup
-  webhooks.sql: |
+  98-webhooks.sql: |
     -- Enable the pg_net extension
     CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
-
     -- Create the webhooks schema
     CREATE SCHEMA IF NOT EXISTS "supabase_functions";
-
     -- Create the webhooks table
     CREATE TABLE IF NOT EXISTS "supabase_functions"."hooks" (
       "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -36,7 +30,6 @@ data:
       "created_at" timestamp with time zone DEFAULT now(),
       "updated_at" timestamp with time zone DEFAULT now()
     );
-
     -- Create the webhook_logs table
     CREATE TABLE IF NOT EXISTS "supabase_functions"."hook_logs" (
       "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -47,12 +40,10 @@ data:
       "status" integer,
       "created_at" timestamp with time zone DEFAULT now()
     );
-
     -- Create indexes
     CREATE INDEX IF NOT EXISTS "hooks_name_idx" ON "supabase_functions"."hooks"("name");
     CREATE INDEX IF NOT EXISTS "hook_logs_hook_id_idx" ON "supabase_functions"."hook_logs"("hook_id");
     CREATE INDEX IF NOT EXISTS "hook_logs_created_at_idx" ON "supabase_functions"."hook_logs"("created_at");
-
     -- Create the webhook function
     CREATE OR REPLACE FUNCTION "supabase_functions"."http_request"(
       "url" text,
@@ -78,7 +69,6 @@ data:
       RETURN "response";
     END;
     $$;
-
     -- Create the webhook trigger function
     CREATE OR REPLACE FUNCTION "supabase_functions"."handle_webhook"()
     RETURNS trigger
@@ -96,11 +86,9 @@ data:
       FROM "supabase_functions"."hooks"
       WHERE "events" @> ARRAY[TG_OP]
       AND "name" = TG_TABLE_NAME;
-
       IF NOT FOUND THEN
         RETURN COALESCE(NEW, OLD);
       END IF;
-
       -- Build the payload
       "payload" := jsonb_build_object(
         'type', TG_OP,
@@ -115,7 +103,6 @@ data:
           ELSE NULL
         END
       );
-
       -- Make the HTTP request
       SELECT content::jsonb INTO "response"
       FROM extensions.http((
@@ -125,10 +112,8 @@ data:
         "payload"::text,
         30
       ));
-
       -- Extract status code
       "status" := ("response"->>'status')::integer;
-
       -- Log the webhook call
       INSERT INTO "supabase_functions"."hook_logs" (
         "hook_id",
@@ -143,30 +128,23 @@ data:
         "response",
         "status"
       );
-
       RETURN COALESCE(NEW, OLD);
     END;
     $$;
-
     -- Grant necessary permissions
     GRANT USAGE ON SCHEMA "supabase_functions" TO "anon";
     GRANT USAGE ON SCHEMA "supabase_functions" TO "authenticated";
     GRANT USAGE ON SCHEMA "supabase_functions" TO "service_role";
-
     GRANT SELECT ON "supabase_functions"."hooks" TO "anon";
     GRANT SELECT ON "supabase_functions"."hooks" TO "authenticated";
     GRANT SELECT ON "supabase_functions"."hooks" TO "service_role";
-
-    GRANT SELECT ON "supabase_functions"."hook_logs" TO "anon";
-    GRANT SELECT ON "supabase_functions"."hook_logs" TO "authenticated";
-    GRANT SELECT ON "supabase_functions"."hook_logs" TO "service_role";
-
     GRANT EXECUTE ON FUNCTION "supabase_functions"."http_request"(text, text, jsonb, text) TO "anon";
     GRANT EXECUTE ON FUNCTION "supabase_functions"."http_request"(text, text, jsonb, text) TO "authenticated";
     GRANT EXECUTE ON FUNCTION "supabase_functions"."http_request"(text, text, jsonb, text) TO "service_role";
-
-  # Roles setup
-  roles.sql: |
+    GRANT SELECT ON "supabase_functions"."hook_logs" TO "anon";
+    GRANT SELECT ON "supabase_functions"."hook_logs" TO "authenticated";
+    GRANT SELECT ON "supabase_functions"."hook_logs" TO "service_role";
+  99-roles.sql: |
     -- Create roles
     DO $$
     BEGIN
@@ -175,7 +153,6 @@ data:
       END IF;
     END
     $$;
-
     DO $$
     BEGIN
       IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
@@ -183,7 +160,6 @@ data:
       END IF;
     END
     $$;
-
     DO $$
     BEGIN
       IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
@@ -191,21 +167,14 @@ data:
       END IF;
     END
     $$;
-
     -- Grant roles
     GRANT anon TO postgres;
     GRANT authenticated TO postgres;
     GRANT service_role TO postgres;
-
-  # Supabase internal schema
-  _supabase.sql: |
+  97-_supabase.sql: |
     CREATE SCHEMA IF NOT EXISTS "_supabase";
-
-  # Analytics logs
-  logs.sql: |
+  99-logs.sql: |
     CREATE SCHEMA IF NOT EXISTS "_analytics";
-
-  # Pooler support
-  pooler.sql: |
+  99-pooler.sql: |
     CREATE SCHEMA IF NOT EXISTS "_pooler";
 {{- end }} 

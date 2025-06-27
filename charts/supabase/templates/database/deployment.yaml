@@ -23,28 +23,33 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
-      - name: init-db
-        image: {{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}
-        command:
-        - sh
-        - -c
-        - |
-          if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
-            echo "Initializing database..."
-            mkdir -p /var/lib/postgresql/data
-            chown -R 999:999 /var/lib/postgresql/data
-            chmod 700 /var/lib/postgresql/data
-          else
-            echo "Database already initialized, fixing permissions..."
-            chown -R 999:999 /var/lib/postgresql/data
-            chmod 700 /var/lib/postgresql/data
-          fi
-        volumeMounts:
-        - name: postgres-data
-          mountPath: /var/lib/postgresql/data
-        securityContext:
-          runAsUser: 0
-          runAsGroup: 0
+        {{- if .Values.database.initContainers }}
+        {{- toYaml .Values.database.initContainers | nindent 8 }}
+        {{- end }}
+        - name: setup-init-scripts
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              # 创建目录结构
+              mkdir -p /docker-entrypoint-initdb.d/migrations
+              mkdir -p /docker-entrypoint-initdb.d/init-scripts
+              # 复制文件到正确位置
+              cp /tmp/99-jwt.sql /docker-entrypoint-initdb.d/init-scripts/99-jwt.sql
+              cp /tmp/99-realtime.sql /docker-entrypoint-initdb.d/migrations/99-realtime.sql
+              cp /tmp/98-webhooks.sql /docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql
+              cp /tmp/99-roles.sql /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
+              cp /tmp/97-_supabase.sql /docker-entrypoint-initdb.d/migrations/97-_supabase.sql
+              cp /tmp/99-logs.sql /docker-entrypoint-initdb.d/migrations/99-logs.sql
+              cp /tmp/99-pooler.sql /docker-entrypoint-initdb.d/migrations/99-pooler.sql
+              chmod 644 /docker-entrypoint-initdb.d/migrations/*
+              chmod 644 /docker-entrypoint-initdb.d/init-scripts/*
+          volumeMounts:
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+            - name: init-scripts-config
+              mountPath: /tmp
       containers:
       - name: postgres
         image: {{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}
@@ -63,6 +68,16 @@ spec:
           value: {{ .Values.database.postgres.port | quote }}
         - name: PGPORT
           value: {{ .Values.database.postgres.port | quote }}
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.secretName" . }}
+              key: postgres-password
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.secretName" . }}
+              key: postgres-password
         - name: POSTGRES_DB
           value: {{ .Values.database.postgres.database | quote }}
         - name: PGDATABASE
@@ -72,7 +87,7 @@ spec:
             secretKeyRef:
               name: {{ include "supabase.secretName" . }}
               key: jwt-secret
-        - name: JWT_EXP
+        - name: JWT_EXPIRY
           value: {{ .Values.database.jwtExpiry | quote }}
         {{- with .Values.database.extraEnv }}
         {{- toYaml . | nindent 8 }}
@@ -80,17 +95,9 @@ spec:
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data
-        - name: postgres-config
-          mountPath: /etc/postgresql/postgresql.conf
-          subPath: postgresql.conf
         - name: init-scripts
           mountPath: /docker-entrypoint-initdb.d
-        command:
-        - "postgres"
-        - "-c"
-        - "config_file=/etc/postgresql/postgresql.conf"
-        - "-c"
-        - "log_min_messages=fatal"
+          readOnly: true
         livenessProbe:
           exec:
             command:
@@ -121,10 +128,9 @@ spec:
         {{- else }}
         emptyDir: {}
         {{- end }}
-      - name: postgres-config
-        configMap:
-          name: {{ include "supabase.fullname" . }}-postgres-config
       - name: init-scripts
+        emptyDir: {}
+      - name: init-scripts-config
         configMap:
           name: {{ include "supabase.fullname" . }}-init-scripts
 {{- end }} 

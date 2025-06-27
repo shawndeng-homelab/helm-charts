@@ -150,7 +150,7 @@ studio:
 #     - name: TZ
 #       value: Asia/Shanghai
 kong:
-  enabled: true
+  enabled: false
   replicaCount: 1
   image:
     repository: kong
@@ -198,7 +198,7 @@ kong:
 #     - name: TZ
 #       value: Asia/Shanghai
 auth:
-  enabled: true
+  enabled: false
   replicaCount: 1
   image:
     repository: supabase/gotrue
@@ -250,7 +250,7 @@ auth:
 #     - name: TZ
 #       value: Asia/Shanghai
 rest:
-  enabled: true
+  enabled: false
   replicaCount: 1
   image:
     repository: postgrest/postgrest
@@ -285,7 +285,7 @@ rest:
 #     - name: TZ
 #       value: Asia/Shanghai
 realtime:
-  enabled: true
+  enabled: false
   replicaCount: 1
   image:
     repository: supabase/realtime
@@ -324,7 +324,7 @@ realtime:
 #     - name: TZ
 #       value: Asia/Shanghai
 storage:
-  enabled: true
+  enabled: false
   replicaCount: 1
   image:
     repository: supabase/storage-api
@@ -374,7 +374,7 @@ storage:
 #     - name: TZ
 #       value: Asia/Shanghai
 imgproxy:
-  enabled: true
+  enabled: false
   replicaCount: 1
   image:
     repository: darthsim/imgproxy
@@ -410,7 +410,7 @@ imgproxy:
 #     - name: TZ
 #       value: Asia/Shanghai
 meta:
-  enabled: true
+  enabled: false
   replicaCount: 1
   image:
     repository: supabase/postgres-meta
@@ -447,7 +447,7 @@ meta:
 #     - name: TZ
 #       value: Asia/Shanghai
 functions:
-  enabled: true
+  enabled: false
   replicaCount: 1
   image:
     repository: supabase/edge-runtime
@@ -537,15 +537,31 @@ database:
     accessMode: ReadWriteOnce
     size: 20Gi
     storageClass: ""
-  # Pod 级安全上下文
-  podSecurityContext:
-    runAsUser: 999
-    runAsGroup: 999
-    fsGroup: 999
+  # Pod 级安全上下文 - 移除 runAsUser 让镜像使用默认用户
+  podSecurityContext: {}
   # 容器级安全上下文
   securityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: false
+  # 可选：自定义 initContainers，常用于修复 PVC 权限
+  # 默认提供 busybox 修复权限示例，如不需要可设为 []
+  initContainers:
+    - name: fix-permissions
+      image: busybox
+      command: 
+        - sh
+        - -c
+        - |
+          # 清理数据目录，移除非 PostgreSQL 文件
+          find /var/lib/postgresql/data -mindepth 1 -maxdepth 1 -not -name "PG_VERSION" -not -name "postgresql.conf" -not -name "pg_hba.conf" -not -name "pg_ident.conf" -not -name "base" -not -name "global" -not -name "pg_wal" -not -name "pg_xlog" -not -name "pg_clog" -not -name "pg_multixact" -not -name "pg_subtrans" -not -name "pg_twophase" -not -name "pg_notify" -not -name "pg_serial" -not -name "pg_snapshots" -not -name "pg_stat_tmp" -not -name "pg_replslot" -not -name "pg_tblspc" -not -name "pg_commit_ts" -not -name "pg_dynshmem" -not -name "pg_logical" -not -name "pg_stat" -exec rm -rf {} \;
+          # 修复权限
+          chown -R postgres:postgres /var/lib/postgresql/data || chown -R 70:70 /var/lib/postgresql/data || chown -R 999:999 /var/lib/postgresql/data
+      volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
   resources: {}
   livenessProbe:
     exec:
@@ -585,7 +601,7 @@ database:
 #     - name: TZ
 #       value: Asia/Shanghai
 pooler:
-  enabled: true
+  enabled: false
   replicaCount: 1
   image:
     repository: supabase/supavisor
