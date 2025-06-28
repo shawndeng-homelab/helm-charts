@@ -8,173 +8,246 @@ metadata:
     app.kubernetes.io/component: database
 data:
   99-jwt.sql: |
-    ALTER SYSTEM SET jwt_secret = '$JWT_SECRET';
-    ALTER SYSTEM SET jwt_exp = $JWT_EXPIRY;
-    SELECT pg_reload_conf();
+    \set jwt_secret `echo "$JWT_SECRET"`
+    \set jwt_exp `echo "$JWT_EXP"`
+    ALTER DATABASE postgres SET "app.settings.jwt_secret" TO :'jwt_secret';
+    ALTER DATABASE postgres SET "app.settings.jwt_exp" TO :'jwt_exp';
   99-realtime.sql: |
-    CREATE EXTENSION IF NOT EXISTS "realtime" WITH SCHEMA "extensions";
+    \set pguser `echo "$POSTGRES_USER"`
+
+    create schema if not exists _realtime;
+    alter schema _realtime owner to :pguser;
   98-webhooks.sql: |
-    -- Enable the pg_net extension
-    CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
-    -- Create the webhooks schema
-    CREATE SCHEMA IF NOT EXISTS "supabase_functions";
-    -- Create the webhooks table
-    CREATE TABLE IF NOT EXISTS "supabase_functions"."hooks" (
-      "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-      "name" text NOT NULL,
-      "url" text NOT NULL,
-      "headers" jsonb DEFAULT '{}'::jsonb,
-      "events" text[] DEFAULT '{}',
-      "type" text DEFAULT 'http'::text,
-      "function_name" text,
-      "created_at" timestamp with time zone DEFAULT now(),
-      "updated_at" timestamp with time zone DEFAULT now()
-    );
-    -- Create the webhook_logs table
-    CREATE TABLE IF NOT EXISTS "supabase_functions"."hook_logs" (
-      "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-      "hook_id" uuid REFERENCES "supabase_functions"."hooks"("id") ON DELETE CASCADE,
-      "event" text NOT NULL,
-      "payload" jsonb NOT NULL,
-      "response" jsonb,
-      "status" integer,
-      "created_at" timestamp with time zone DEFAULT now()
-    );
-    -- Create indexes
-    CREATE INDEX IF NOT EXISTS "hooks_name_idx" ON "supabase_functions"."hooks"("name");
-    CREATE INDEX IF NOT EXISTS "hook_logs_hook_id_idx" ON "supabase_functions"."hook_logs"("hook_id");
-    CREATE INDEX IF NOT EXISTS "hook_logs_created_at_idx" ON "supabase_functions"."hook_logs"("created_at");
-    -- Create the webhook function
-    CREATE OR REPLACE FUNCTION "supabase_functions"."http_request"(
-      "url" text,
-      "method" text DEFAULT 'GET'::text,
-      "headers" jsonb DEFAULT '{}'::jsonb,
-      "body" text DEFAULT ''::text
-    )
-    RETURNS jsonb
-    LANGUAGE plpgsql
-    SECURITY DEFINER
-    AS $$
-    DECLARE
-      "response" jsonb;
-    BEGIN
-      SELECT content::jsonb INTO "response"
-      FROM extensions.http((
-        method,
-        url,
-        headers,
-        body,
-        30
-      ));
-      RETURN "response";
-    END;
-    $$;
-    -- Create the webhook trigger function
-    CREATE OR REPLACE FUNCTION "supabase_functions"."handle_webhook"()
-    RETURNS trigger
-    LANGUAGE plpgsql
-    SECURITY DEFINER
-    AS $$
-    DECLARE
-      "hook" record;
-      "payload" jsonb;
-      "response" jsonb;
-      "status" integer;
-    BEGIN
-      -- Get the webhook configuration
-      SELECT * INTO "hook"
-      FROM "supabase_functions"."hooks"
-      WHERE "events" @> ARRAY[TG_OP]
-      AND "name" = TG_TABLE_NAME;
-      IF NOT FOUND THEN
-        RETURN COALESCE(NEW, OLD);
-      END IF;
-      -- Build the payload
-      "payload" := jsonb_build_object(
-        'type', TG_OP,
-        'table', TG_TABLE_NAME,
-        'schema', TG_TABLE_SCHEMA,
-        'record', CASE
-          WHEN TG_OP = 'DELETE' THEN to_jsonb(OLD)
-          ELSE to_jsonb(NEW)
-        END,
-        'old_record', CASE
-          WHEN TG_OP IN ('UPDATE', 'DELETE') THEN to_jsonb(OLD)
-          ELSE NULL
+    BEGIN;
+      -- Create pg_net extension
+      CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;
+      -- Create supabase_functions schema
+      CREATE SCHEMA supabase_functions AUTHORIZATION supabase_admin;
+      GRANT USAGE ON SCHEMA supabase_functions TO postgres, anon, authenticated, service_role;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+      -- supabase_functions.migrations definition
+      CREATE TABLE supabase_functions.migrations (
+        version text PRIMARY KEY,
+        inserted_at timestamptz NOT NULL DEFAULT NOW()
+      );
+      -- Initial supabase_functions migration
+      INSERT INTO supabase_functions.migrations (version) VALUES ('initial');
+      -- supabase_functions.hooks definition
+      CREATE TABLE supabase_functions.hooks (
+        id bigserial PRIMARY KEY,
+        hook_table_id integer NOT NULL,
+        hook_name text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT NOW(),
+        request_id bigint
+      );
+      CREATE INDEX supabase_functions_hooks_request_id_idx ON supabase_functions.hooks USING btree (request_id);
+      CREATE INDEX supabase_functions_hooks_h_table_id_h_name_idx ON supabase_functions.hooks USING btree (hook_table_id, hook_name);
+      COMMENT ON TABLE supabase_functions.hooks IS 'Supabase Functions Hooks: Audit trail for triggered hooks.';
+      CREATE FUNCTION supabase_functions.http_request()
+        RETURNS trigger
+        LANGUAGE plpgsql
+        AS $function$
+        DECLARE
+          request_id bigint;
+          payload jsonb;
+          url text := TG_ARGV[0]::text;
+          method text := TG_ARGV[1]::text;
+          headers jsonb DEFAULT '{}'::jsonb;
+          params jsonb DEFAULT '{}'::jsonb;
+          timeout_ms integer DEFAULT 1000;
+        BEGIN
+          IF url IS NULL OR url = 'null' THEN
+            RAISE EXCEPTION 'url argument is missing';
+          END IF;
+
+          IF method IS NULL OR method = 'null' THEN
+            RAISE EXCEPTION 'method argument is missing';
+          END IF;
+
+          IF TG_ARGV[2] IS NULL OR TG_ARGV[2] = 'null' THEN
+            headers = '{"Content-Type": "application/json"}'::jsonb;
+          ELSE
+            headers = TG_ARGV[2]::jsonb;
+          END IF;
+
+          IF TG_ARGV[3] IS NULL OR TG_ARGV[3] = 'null' THEN
+            params = '{}'::jsonb;
+          ELSE
+            params = TG_ARGV[3]::jsonb;
+          END IF;
+
+          IF TG_ARGV[4] IS NULL OR TG_ARGV[4] = 'null' THEN
+            timeout_ms = 1000;
+          ELSE
+            timeout_ms = TG_ARGV[4]::integer;
+          END IF;
+
+          CASE
+            WHEN method = 'GET' THEN
+              SELECT http_get INTO request_id FROM net.http_get(
+                url,
+                params,
+                headers,
+                timeout_ms
+              );
+            WHEN method = 'POST' THEN
+              payload = jsonb_build_object(
+                'old_record', OLD,
+                'record', NEW,
+                'type', TG_OP,
+                'table', TG_TABLE_NAME,
+                'schema', TG_TABLE_SCHEMA
+              );
+
+              SELECT http_post INTO request_id FROM net.http_post(
+                url,
+                payload,
+                params,
+                headers,
+                timeout_ms
+              );
+            ELSE
+              RAISE EXCEPTION 'method argument % is invalid', method;
+          END CASE;
+
+          INSERT INTO supabase_functions.hooks
+            (hook_table_id, hook_name, request_id)
+          VALUES
+            (TG_RELID, TG_NAME, request_id);
+
+          RETURN NEW;
         END
-      );
-      -- Make the HTTP request
-      SELECT content::jsonb INTO "response"
-      FROM extensions.http((
-        'POST',
-        "hook"."url",
-        "hook"."headers",
-        "payload"::text,
-        30
-      ));
-      -- Extract status code
-      "status" := ("response"->>'status')::integer;
-      -- Log the webhook call
-      INSERT INTO "supabase_functions"."hook_logs" (
-        "hook_id",
-        "event",
-        "payload",
-        "response",
-        "status"
-      ) VALUES (
-        "hook"."id",
-        TG_OP,
-        "payload",
-        "response",
-        "status"
-      );
-      RETURN COALESCE(NEW, OLD);
-    END;
-    $$;
-    -- Grant necessary permissions
-    GRANT USAGE ON SCHEMA "supabase_functions" TO "anon";
-    GRANT USAGE ON SCHEMA "supabase_functions" TO "authenticated";
-    GRANT USAGE ON SCHEMA "supabase_functions" TO "service_role";
-    GRANT SELECT ON "supabase_functions"."hooks" TO "anon";
-    GRANT SELECT ON "supabase_functions"."hooks" TO "authenticated";
-    GRANT SELECT ON "supabase_functions"."hooks" TO "service_role";
-    GRANT EXECUTE ON FUNCTION "supabase_functions"."http_request"(text, text, jsonb, text) TO "anon";
-    GRANT EXECUTE ON FUNCTION "supabase_functions"."http_request"(text, text, jsonb, text) TO "authenticated";
-    GRANT EXECUTE ON FUNCTION "supabase_functions"."http_request"(text, text, jsonb, text) TO "service_role";
-    GRANT SELECT ON "supabase_functions"."hook_logs" TO "anon";
-    GRANT SELECT ON "supabase_functions"."hook_logs" TO "authenticated";
-    GRANT SELECT ON "supabase_functions"."hook_logs" TO "service_role";
+      $function$;
+      -- Supabase super admin
+      DO
+      $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_roles
+          WHERE rolname = 'supabase_functions_admin'
+        )
+        THEN
+          CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
+        END IF;
+      END
+      $$;
+      GRANT ALL PRIVILEGES ON SCHEMA supabase_functions TO supabase_functions_admin;
+      GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA supabase_functions TO supabase_functions_admin;
+      GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA supabase_functions TO supabase_functions_admin;
+      ALTER USER supabase_functions_admin SET search_path = "supabase_functions";
+      ALTER table "supabase_functions".migrations OWNER TO supabase_functions_admin;
+      ALTER table "supabase_functions".hooks OWNER TO supabase_functions_admin;
+      ALTER function "supabase_functions".http_request() OWNER TO supabase_functions_admin;
+      GRANT supabase_functions_admin TO postgres;
+      -- Remove unused supabase_pg_net_admin role
+      DO
+      $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_roles
+          WHERE rolname = 'supabase_pg_net_admin'
+        )
+        THEN
+          REASSIGN OWNED BY supabase_pg_net_admin TO supabase_admin;
+          DROP OWNED BY supabase_pg_net_admin;
+          DROP ROLE supabase_pg_net_admin;
+        END IF;
+      END
+      $$;
+      -- pg_net grants when extension is already enabled
+      DO
+      $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_extension
+          WHERE extname = 'pg_net'
+        )
+        THEN
+          GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+          ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+          ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+          ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+          ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+          REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+          REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+          GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+          GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+        END IF;
+      END
+      $$;
+      -- Event trigger for pg_net
+      CREATE OR REPLACE FUNCTION extensions.grant_pg_net_access()
+      RETURNS event_trigger
+      LANGUAGE plpgsql
+      AS $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM pg_event_trigger_ddl_commands() AS ev
+          JOIN pg_extension AS ext
+          ON ev.objid = ext.oid
+          WHERE ext.extname = 'pg_net'
+        )
+        THEN
+          GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+          ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+          ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+          ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+          ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+          REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+          REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+          GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+          GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+        END IF;
+      END;
+      $$;
+      COMMENT ON FUNCTION extensions.grant_pg_net_access IS 'Grants access to pg_net';
+      DO
+      $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_event_trigger
+          WHERE evtname = 'issue_pg_net_access'
+        ) THEN
+          CREATE EVENT TRIGGER issue_pg_net_access ON ddl_command_end WHEN TAG IN ('CREATE EXTENSION')
+          EXECUTE PROCEDURE extensions.grant_pg_net_access();
+        END IF;
+      END
+      $$;
+      INSERT INTO supabase_functions.migrations (version) VALUES ('20210809183423_update_grants');
+      ALTER function supabase_functions.http_request() SECURITY DEFINER;
+      ALTER function supabase_functions.http_request() SET search_path = supabase_functions;
+      REVOKE ALL ON FUNCTION supabase_functions.http_request() FROM PUBLIC;
+      GRANT EXECUTE ON FUNCTION supabase_functions.http_request() TO postgres, anon, authenticated, service_role;
+    COMMIT;
   99-roles.sql: |
-    -- Create roles
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
-        CREATE ROLE anon;
-      END IF;
-    END
-    $$;
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
-        CREATE ROLE authenticated;
-      END IF;
-    END
-    $$;
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
-        CREATE ROLE service_role;
-      END IF;
-    END
-    $$;
-    -- Grant roles
-    GRANT anon TO postgres;
-    GRANT authenticated TO postgres;
-    GRANT service_role TO postgres;
+    -- NOTE: change to your own passwords for production environments
+    \set pgpass `echo "$POSTGRES_PASSWORD"`
+
+    ALTER USER authenticator WITH PASSWORD :'pgpass';
+    ALTER USER pgbouncer WITH PASSWORD :'pgpass';
+    ALTER USER supabase_auth_admin WITH PASSWORD :'pgpass';
+    ALTER USER supabase_functions_admin WITH PASSWORD :'pgpass';
+    ALTER USER supabase_storage_admin WITH PASSWORD :'pgpass';
   97-_supabase.sql: |
-    CREATE SCHEMA IF NOT EXISTS "_supabase";
+    \set pguser `echo "$POSTGRES_USER"`
+    CREATE DATABASE _supabase WITH OWNER :pguser;
   99-logs.sql: |
-    CREATE SCHEMA IF NOT EXISTS "_analytics";
+    \set pguser `echo "$POSTGRES_USER"`
+
+    \c _supabase
+    create schema if not exists _analytics;
+    alter schema _analytics owner to :pguser;
   99-pooler.sql: |
-    CREATE SCHEMA IF NOT EXISTS "_pooler";
+    \set pguser `echo "$POSTGRES_USER"`
+
+    \c _supabase
+    create schema if not exists _supavisor;
+    alter schema _supavisor owner to :pguser;
 {{- end }} 
