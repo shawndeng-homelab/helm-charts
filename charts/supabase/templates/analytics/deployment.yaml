@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-analytics
+  labels:
+    app: supabase
+    component: analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase
+      component: analytics
+  template:
+    metadata:
+      labels:
+        app: supabase
+        component: analytics
+    spec:
+      containers:
+        - name: analytics
+          image: supabase/logflare:1.4.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 4000
+              protocol: TCP
+          env:
+            - name: LOGFLARE_NODE_HOST
+              value: "127.0.0.1"
+            - name: DB_USERNAME
+              value: "supabase_admin"
+            - name: DB_DATABASE
+              value: "_supabase"
+            - name: DB_HOSTNAME
+              value: "supabase-db"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-db-secret
+                  key: POSTGRES_PASSWORD
+            - name: DB_SCHEMA
+              value: "_analytics"
+            - name: LOGFLARE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-analytics-secret
+                  key: LOGFLARE_API_KEY
+            - name: LOGFLARE_SINGLE_TENANT
+              value: "true"
+            - name: LOGFLARE_SUPABASE_MODE
+              value: "true"
+            - name: LOGFLARE_MIN_CLUSTER_SIZE
+              value: "1"
+            - name: POSTGRES_BACKEND_URL
+              value: "postgresql://supabase_admin:$(DB_PASSWORD)@supabase-db:5432/_supabase"
+            - name: POSTGRES_BACKEND_SCHEMA
+              value: "_analytics"
+            - name: LOGFLARE_FEATURE_FLAG_OVERRIDE
+              value: "multibackend=true"
+            # Optional: Google Cloud Project configuration
+            - name: GOOGLE_PROJECT_ID
+              value: ""
+            - name: GOOGLE_PROJECT_NUMBER
+              value: ""
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 10 

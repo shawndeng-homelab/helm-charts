@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-db
+  labels:
+    app: supabase
+    component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase
+      component: database
+  template:
+    metadata:
+      labels:
+        app: supabase
+        component: database
+    spec:
+      containers:
+        - name: postgres
+          image: supabase/postgres:15.8.1.105
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-db-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-db-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: "postgres"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-db-secret
+                  key: POSTGRES_PASSWORD
+            - name: PGDATABASE
+              value: "postgres"
+            - name: POSTGRES_HOST
+              value: "/var/run/postgresql"
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATA
+              value: "/var/lib/postgresql/data"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-db-secret
+                  key: JWT_SECRET
+            - name: JWT_EXP
+              value: "3600"
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d/init-scripts
+            - name: migration-scripts
+              mountPath: /docker-entrypoint-initdb.d/migrations
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - "$(POSTGRES_USER)"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - "$(POSTGRES_USER)"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: supabase-db-pvc
+        - name: init-scripts
+          configMap:
+            name: supabase-db-init-scripts
+            items:
+              - key: 98-webhooks.sql
+                path: 98-webhooks.sql
+              - key: 99-roles.sql
+                path: 99-roles.sql
+              - key: 99-jwt.sql
+                path: 99-jwt.sql
+        - name: migration-scripts
+          configMap:
+            name: supabase-db-init-scripts
+            items:
+              - key: 99-realtime.sql
+                path: 99-realtime.sql
+              - key: 97-_supabase.sql
+                path: 97-_supabase.sql
+              - key: 99-logs.sql
+                path: 99-logs.sql
+              - key: 99-pooler.sql
+                path: 99-pooler.sql
