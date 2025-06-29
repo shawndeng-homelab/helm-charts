@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "supabase.fullname" . }}-ingress
+  name: {{ include "supabase.fullname" . }}
   labels:
     {{- include "supabase.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
@@ -35,9 +35,9 @@ spec:
             {{- end }}
             backend:
               service:
-                name: {{ include "supabase.fullname" $ }}-{{ .service | default "kong" }}
+                name: {{ include "supabase.fullname" $ }}
                 port:
-                  number: {{ $.Values.kong.service.port }}
+                  number: {{ $.Values.service.port }}
           {{- end }}
     {{- end }}
-{{- end }} 
+{{- end }}

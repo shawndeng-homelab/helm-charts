@@ -2,689 +2,122 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# Global configuration
-# 全局配置，适用于所有服务
-# imageRegistry: 镜像仓库前缀
-# imagePullSecrets: 镜像拉取密钥
-# storageClass: 默认存储类
-# 示例：
-# global:
-#   imageRegistry: "registry.cn-hangzhou.aliyuncs.com"
-#   imagePullSecrets:
-#     - name: my-docker-secret
-#   storageClass: "fast-ssd"
-global:
-  imageRegistry: ""
-  imagePullSecrets: []
-  storageClass: ""
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
 
-# PostgreSQL configuration
-# PostgreSQL 相关配置
-# 示例：
-# postgres:
-#   port: 5432
-#   database: supabase
+# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  repository: nginx
+  # This sets the pull policy for images.
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
 
-# Secrets configuration
-# 各服务用到的敏感信息，建议通过 secret 管理
-# 支持两种方式：
-# 1. 自动创建 Secret（默认）
-# 2. 使用已存在的 Secret（通过 externalSecrets 配置）
-# 示例：
-# secrets:
-#   postgresPassword: "your-secure-password"
-#   jwtSecret: "your-jwt-secret"
-#   anonKey: "your-anon-key"
-#   serviceRoleKey: "your-service-role-key"
-#   dashboardUsername: "admin"
-#   dashboardPassword: "admin123"
-#   secretKeyBase: "your-secret-key-base"
-#   vaultEncKey: "your-vault-key"
-#   logflarePublicAccessToken: "logflare-public"
-#   logflarePrivateAccessToken: "logflare-private"
-#   # S3/MinIO 存储密钥
-#   s3AccessKey: "minioadmin"
-#   s3SecretKey: "minioadmin"
-# 
-# # 使用外部 Secret（External Secrets Operator 等）
-# externalSecrets:
-#   enabled: true
-#   secretName: "supabase-external-secrets"
-#   # 可选：指定命名空间，默认使用当前命名空间
-#   namespace: "supabase"
-secrets:
-  postgresPassword: "your-super-secret-and-long-postgres-password"
-  jwtSecret: "your-super-secret-jwt-token-with-at-least-32-characters-long"
-  anonKey: "your-anon-key"
-  serviceRoleKey: "your-service-role-key"
-  dashboardUsername: "supabase"
-  dashboardPassword: "this_password_is_insecure_and_should_be_updated"
-  secretKeyBase: "your-secret-key-base"
-  vaultEncKey: "your-vault-encryption-key"
-  logflarePublicAccessToken: "your-logflare-public-access-token"
-  logflarePrivateAccessToken: "your-logflare-private-access-token"
-  # S3/MinIO 存储密钥
-  s3AccessKey: "minioadmin"
-  s3SecretKey: "minioadmin"
+# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: ""
 
-# External Secrets 配置
-# 当使用 External Secrets Operator 或其他外部 Secret 管理工具时启用
-externalSecrets:
-  enabled: false
-  secretName: ""  # 外部 Secret 的名称
-  namespace: ""   # 外部 Secret 的命名空间，留空使用当前命名空间
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
 
-# =============================================================================
-# 按照官方 docker-compose 顺序排列的服务配置
-# =============================================================================
+# This is for setting Kubernetes Annotations to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: {}
+# This is for setting Kubernetes Labels to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
 
-# Studio configuration
-# Supabase Studio 管理界面
-# 示例：
-# studio:
-#   enabled: true
-#   replicaCount: 1
-#   image:
-#     repository: supabase/studio
-#     tag: "2025.06.02-sha-8f2993d"
-#     pullPolicy: IfNotPresent
-#   environment:
-#     defaultOrganizationName: "MyOrg"
-#     defaultProjectName: "MyProject"
-#     openaiApiKey: "sk-xxxx"
-#     supabasePublicUrl: "http://localhost:8000"
-#     nextPublicEnableLogs: "true"
-#     nextAnalyticsBackendProvider: "postgres"
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-studio:
-  enabled: true
-  replicaCount: 1
-  image:
-    repository: supabase/studio
-    tag: "2025.06.02-sha-8f2993d"
-    pullPolicy: IfNotPresent
-  resources: {}
-  environment:
-    defaultOrganizationName: "Default Organization"
-    defaultProjectName: "Default Project"
-    openaiApiKey: ""
-    supabasePublicUrl: "http://localhost:8000"
-    nextPublicEnableLogs: "true"
-    nextAnalyticsBackendProvider: "postgres"
-  # Health check configuration
-  livenessProbe:
-    httpGet:
-      path: /api/platform/profile
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 3
-  readinessProbe:
-    httpGet:
-      path: /api/platform/profile
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-    timeoutSeconds: 3
-    failureThreshold: 3
-  extraEnv: []
+podSecurityContext: {}
+  # fsGroup: 2000
 
-# Kong API Gateway configuration
-# Kong API 网关
-# 示例：
-# kong:
-#   enabled: true
-#   replicaCount: 1
-#   image:
-#     repository: kong
-#     tag: "2.8.1"
-#     pullPolicy: IfNotPresent
-#   service:
-#     type: ClusterIP
-#     port: 8000
-#     httpsPort: 8443
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-kong:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: kong
-    tag: "2.8.1"
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 8000
-    httpsPort: 8443
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /status
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /status
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
 
-# Auth service configuration
-# 用户认证服务
-# 示例：
-# auth:
-#   enabled: true
-#   image:
-#     repository: supabase/gotrue
-#     tag: v2.174.0
-#   apiExternalUrl: "http://localhost:8000"
-#   siteUrl: "http://localhost:3000"
-#   jwtExpiry: "3600"
-#   enableEmailSignup: "true"
-#   smtp:
-#     adminEmail: "admin@your.com"
-#     host: "smtp.your.com"
-#     port: "587"
-#     user: "user"
-#     pass: "pass"
-#     senderName: "Supabase"
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-auth:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: supabase/gotrue
-    tag: "v2.174.0"
-    pullPolicy: IfNotPresent
-  apiExternalUrl: "http://localhost:8000"
-  siteUrl: "http://localhost:3000"
-  additionalRedirectUrls: ""
-  disableSignup: "false"
-  jwtExpiry: "3600"
-  enableEmailSignup: "true"
-  enableAnonymousUsers: "false"
-  enableEmailAutoconfirm: "false"
-  enablePhoneSignup: "false"
-  enablePhoneAutoconfirm: "false"
-  smtp:
-    adminEmail: ""
-    host: ""
-    port: "587"
-    user: ""
-    pass: ""
-    senderName: ""
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  type: ClusterIP
+  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  port: 80
 
-# REST API service configuration
-# PostgREST 服务
-# 示例：
-# rest:
-#   enabled: true
-#   image:
-#     repository: postgrest/postgrest
-#     tag: v12.2.12
-#   dbSchemas: "public,storage,graphql_public"
-#   jwtExpiry: "3600"
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-rest:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: postgrest/postgrest
-    tag: "v12.2.12"
-    pullPolicy: IfNotPresent
-  dbSchemas: "public,storage,graphql_public"
-  jwtExpiry: "3600"
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
-# Realtime service configuration
-# Realtime websocket 服务
-# 示例：
-# realtime:
-#   enabled: true
-#   image:
-#     repository: supabase/realtime
-#     tag: v2.34.47
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-realtime:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: supabase/realtime
-    tag: "v2.34.47"
-    pullPolicy: IfNotPresent
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /api/tenants/realtime-dev/health
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /api/tenants/realtime-dev/health
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
-# Storage service configuration
-# 文件存储服务，支持本地和 S3
-# 示例：
-# storage:
-#   enabled: true
-#   backend: "s3"
-#   fileSizeLimit: "52428800"
-#   s3:
-#     bucket: "supabase-storage"
-#     region: "us-east-1"
-#     endpoint: "http://minio:9000"
-#     protocol: "http"
-#     forcePathStyle: true
-#     defaultRegion: "us-east-1"
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-storage:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: supabase/storage-api
-    tag: "v1.23.0"
-    pullPolicy: IfNotPresent
-  backend: "file"  # "file" 或 "s3"，默认本地存储。若需 S3/MinIO，请将此处改为 "s3"
-  fileSizeLimit: "52428800"
-  persistence:
-    enabled: true
-    accessMode: ReadWriteOnce
-    size: 10Gi
-    storageClass: ""
-  # S3/MinIO 配置，仅在 backend: s3 时生效
-  s3:
-    bucket: "supabase-storage"      # S3 桶名，若使用本地存储可忽略
-    region: "us-east-1"            # S3 区域，若使用本地存储可忽略
-    endpoint: ""                   # S3 兼容服务地址，如 MinIO，留空自动推断
-    protocol: "https"              # "http" 或 "https"，如用 MinIO 建议 http
-    forcePathStyle: true            # MinIO 需设为 true，AWS S3 可为 false
-    defaultRegion: "us-east-1"     # 默认区域，通常与 region 保持一致
-    # accessKey 和 secretKey 统一从 secrets 获取
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /status
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /status
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
-# Imgproxy service configuration
-# 图片代理服务
-# 示例：
-# imgproxy:
-#   enabled: true
-#   image:
-#     repository: darthsim/imgproxy
-#     tag: v3.8.0
-#   enableWebpDetection: "true"
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-imgproxy:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: darthsim/imgproxy
-    tag: "v3.8.0"
-    pullPolicy: IfNotPresent
-  enableWebpDetection: "true"
-  resources: {}
-  livenessProbe:
-    exec:
-      command:
-      - imgproxy
-      - health
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    exec:
-      command:
-      - imgproxy
-      - health
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
-# Meta service configuration
-# 数据库元数据服务
-# 示例：
-# meta:
-#   enabled: true
-#   image:
-#     repository: supabase/postgres-meta
-#     tag: v0.89.3
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-meta:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: supabase/postgres-meta
-    tag: "v0.89.3"
-    pullPolicy: IfNotPresent
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
-# Functions service configuration
-# Edge Functions 服务
-# 示例：
-# functions:
-#   enabled: true
-#   image:
-#     repository: supabase/edge-runtime
-#     tag: v1.67.4
-#   verifyJwt: "true"
-#   persistence:
-#     enabled: true
-#     size: 1Gi
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-functions:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: supabase/edge-runtime
-    tag: "v1.67.4"
-    pullPolicy: IfNotPresent
-  verifyJwt: "true"
-  persistence:
-    enabled: true
-    accessMode: ReadWriteOnce
-    size: 1Gi
-    storageClass: ""
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
-# Analytics service configuration
-# 日志与分析服务
-# 示例：
-# analytics:
-#   enabled: true
-#   image:
-#     repository: supabase/logflare
-#     tag: 1.14.2
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-analytics:
-  enabled: true
-  replicaCount: 1
-  image:
-    repository: supabase/logflare
-    tag: "1.14.2"
-    pullPolicy: IfNotPresent
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /health
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
-# Database configuration
-# PostgreSQL 数据库
-# 示例：
-# database:
-#   enabled: true
-#   image:
-#     repository: supabase/postgres
-#     tag: 15.8.1.060
-#   persistence:
-#     enabled: true
-#     size: 20Gi
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-database:
-  enabled: true
-  image:
-    repository: supabase/postgres
-    tag: "15.8.1.060"
-    pullPolicy: IfNotPresent
-  # PostgreSQL 相关配置
-  postgres:
-    port: 5432
-    database: postgres
-  jwtExpiry: "3600"
-  persistence:
-    enabled: true
-    accessMode: ReadWriteOnce
-    size: 20Gi
-    storageClass: ""
-  # Pod 级安全上下文 - 移除 runAsUser 让镜像使用默认用户
-  podSecurityContext: {}
-  # 容器级安全上下文
-  securityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: false
-  # 可选：自定义 initContainers，常用于修复 PVC 权限
-  # 默认提供 busybox 修复权限示例，如不需要可设为 []
-  initContainers:
-    - name: fix-permissions
-      image: busybox
-      command: 
-        - sh
-        - -c
-        - |
-          # 清理数据目录，移除非 PostgreSQL 文件
-          find /var/lib/postgresql/data -mindepth 1 -maxdepth 1 -not -name "PG_VERSION" -not -name "postgresql.conf" -not -name "pg_hba.conf" -not -name "pg_ident.conf" -not -name "base" -not -name "global" -not -name "pg_wal" -not -name "pg_xlog" -not -name "pg_clog" -not -name "pg_multixact" -not -name "pg_subtrans" -not -name "pg_twophase" -not -name "pg_notify" -not -name "pg_serial" -not -name "pg_snapshots" -not -name "pg_stat_tmp" -not -name "pg_replslot" -not -name "pg_tblspc" -not -name "pg_commit_ts" -not -name "pg_dynshmem" -not -name "pg_logical" -not -name "pg_stat" -exec rm -rf {} \;
-          # 修复权限
-          chown -R postgres:postgres /var/lib/postgresql/data || chown -R 70:70 /var/lib/postgresql/data || chown -R 999:999 /var/lib/postgresql/data
-      volumeMounts:
-        - name: postgres-data
-          mountPath: /var/lib/postgresql/data
-      securityContext:
-        runAsUser: 0
-        runAsGroup: 0
-  resources: {}
-  livenessProbe:
-    exec:
-      command:
-      - pg_isready
-      - -U
-      - postgres
-      - -h
-      - localhost
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    exec:
-      command:
-      - pg_isready
-      - -U
-      - postgres
-      - -h
-      - localhost
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
-# Pooler configuration
-# 连接池服务
-# 示例：
-# pooler:
-#   enabled: true
-#   image:
-#     repository: supabase/supavisor
-#     tag: 2.5.1
-#   proxyPort: 6543
-#   defaultPoolSize: "15"
-#   maxClientConn: "100"
-#   dbPoolSize: "10"
-#   extraEnv:
-#     - name: TZ
-#       value: Asia/Shanghai
-pooler:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: supabase/supavisor
-    tag: "2.5.1"
-    pullPolicy: IfNotPresent
-  proxyPort: 6543
-  tenantId: "local"
-  defaultPoolSize: "15"
-  maxClientConn: "100"
-  dbPoolSize: "10"
-  resources: {}
-  livenessProbe:
-    httpGet:
-      path: /api/health
-      port: http
-    initialDelaySeconds: 30
-    periodSeconds: 10
-  readinessProbe:
-    httpGet:
-      path: /api/health
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  extraEnv: []
-
-# Ingress configuration
-# 入口配置
-# 示例：
-# ingress:
-#   enabled: true
-#   className: "nginx"
-#   annotations:
-#     kubernetes.io/ingress.class: nginx
-#   hosts:
-#     - host: supabase.local
-#       paths:
-#         - path: /
-#           pathType: Prefix
-#   tls:
-#     - secretName: supabase-tls
-#       hosts:
-#         - supabase.local
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
   enabled: false
   className: ""
   annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: supabase.local
+    - host: chart-example.local
       paths:
         - path: /
-          pathType: Prefix
+          pathType: ImplementationSpecific
   tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
 
-# Service account configuration
-# 服务账号配置
-# 示例：
-# serviceAccount:
-#   create: true
-#   automount: true
-#   annotations: {}
-#   name: ""
-serviceAccount:
-  create: true
-  automount: true
-  annotations: {}
-  name: ""
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
 
-# Pod annotations and labels
-# podAnnotations/podLabels: Pod 级别的自定义注解和标签
-podAnnotations: {}
-podLabels: {}
+# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
 
-# Pod security context
-podSecurityContext: {}
+# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
 
-# Container security context
-securityContext: {}
+# Additional volumes on the output Deployment definition.
+volumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
 
-# Node selector
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
 nodeSelector: {}
 
-# Tolerations
 tolerations: []
 
-# Affinity
 affinity: {}
