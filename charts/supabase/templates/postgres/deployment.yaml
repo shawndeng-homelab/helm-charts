@@ -45,6 +45,8 @@ spec:
               value: "/var/run/postgresql"
             - name: PGPORT
               value: "5432"
+            - name: POSTGRES_PORT
+              value: "5432"
             - name: PGDATA
               value: "/var/lib/postgresql/data"
             - name: JWT_SECRET
@@ -72,8 +74,10 @@ spec:
                 - pg_isready
                 - -U
                 - "$(POSTGRES_USER)"
-            initialDelaySeconds: 30
-            periodSeconds: 10
+                - -h
+                - localhost
+            initialDelaySeconds: 5
+            periodSeconds: 5
             timeoutSeconds: 5
           readinessProbe:
             exec:
@@ -81,6 +85,8 @@ spec:
                 - pg_isready
                 - -U
                 - "$(POSTGRES_USER)"
+                - -h
+                - localhost
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3

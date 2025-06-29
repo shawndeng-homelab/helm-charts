@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: analytics
-          image: supabase/logflare:1.4.0
+          image: supabase/logflare:1.16.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

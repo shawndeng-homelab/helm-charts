@@ -234,18 +234,21 @@ data:
     ALTER USER supabase_auth_admin WITH PASSWORD :'pgpass';
     ALTER USER supabase_functions_admin WITH PASSWORD :'pgpass';
     ALTER USER supabase_storage_admin WITH PASSWORD :'pgpass';
+
   97-_supabase.sql: |
     \set pguser `echo "$POSTGRES_USER"`
     CREATE DATABASE _supabase WITH OWNER :pguser;
+
   99-logs.sql: |
     \set pguser `echo "$POSTGRES_USER"`
-
     \c _supabase
     create schema if not exists _analytics;
     alter schema _analytics owner to :pguser;
+    \c postgres
+
   99-pooler.sql: |
     \set pguser `echo "$POSTGRES_USER"`
-
     \c _supabase
     create schema if not exists _supavisor;
-    alter schema _supavisor owner to :pguser; 
+    alter schema _supavisor owner to :pguser;
+    \c postgres
