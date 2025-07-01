@@ -17,6 +17,7 @@ spec:
         app: supabase
         component: database
     spec:
+
       containers:
         - name: postgres
           image: supabase/postgres:15.8.1.105
@@ -64,10 +65,34 @@ spec:
             - name: db-data
               mountPath: /var/lib/postgresql/data
               subPath: pgdata
-            - name: init-scripts
-              mountPath: /docker-entrypoint-initdb.d/init-scripts
-            - name: migration-scripts
-              mountPath: /docker-entrypoint-initdb.d/migrations
+            - name: custom-scripts
+              mountPath: /docker-entrypoint-initdb.d/migrations/97-_supabase.sql
+              subPath: 97-_supabase.sql
+              readOnly: true
+            - name: custom-scripts
+              mountPath: /docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql
+              subPath: 98-webhooks.sql
+              readOnly: true
+            - name: custom-scripts
+              mountPath: /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
+              subPath: 99-roles.sql
+              readOnly: true
+            - name: custom-scripts
+              mountPath: /docker-entrypoint-initdb.d/init-scripts/99-jwt.sql
+              subPath: 99-jwt.sql
+              readOnly: true
+            - name: custom-scripts
+              mountPath: /docker-entrypoint-initdb.d/migrations/99-realtime.sql
+              subPath: 99-realtime.sql
+              readOnly: true
+            - name: custom-scripts
+              mountPath: /docker-entrypoint-initdb.d/migrations/99-logs.sql
+              subPath: 99-logs.sql
+              readOnly: true
+            - name: custom-scripts
+              mountPath: /docker-entrypoint-initdb.d/migrations/99-pooler.sql
+              subPath: 99-pooler.sql
+              readOnly: true
           livenessProbe:
             exec:
               command:
@@ -93,26 +118,7 @@ spec:
       volumes:
         - name: db-data
           persistentVolumeClaim:
-            claimName: supabase-db-pvc
-        - name: init-scripts
+            claimName: supabase-db-pvc-v2
+        - name: custom-scripts
           configMap:
             name: supabase-db-init-scripts
-            items:
-              - key: 98-webhooks.sql
-                path: 98-webhooks.sql
-              - key: 99-roles.sql
-                path: 99-roles.sql
-              - key: 99-jwt.sql
-                path: 99-jwt.sql
-        - name: migration-scripts
-          configMap:
-            name: supabase-db-init-scripts
-            items:
-              - key: 99-realtime.sql
-                path: 99-realtime.sql
-              - key: 97-_supabase.sql
-                path: 97-_supabase.sql
-              - key: 99-logs.sql
-                path: 99-logs.sql
-              - key: 99-pooler.sql
-                path: 99-pooler.sql
