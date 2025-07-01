@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: analytics
-          image: supabase/logflare:1.16.0
+          image: supabase/logflare:1.14.2
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -48,6 +48,16 @@ spec:
                 secretKeyRef:
                   name: supabase-analytics-secret
                   key: LOGFLARE_API_KEY
+            - name: LOGFLARE_PUBLIC_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-analytics-secret
+                  key: LOGFLARE_PUBLIC_ACCESS_TOKEN
+            - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-analytics-secret
+                  key: LOGFLARE_PRIVATE_ACCESS_TOKEN
             - name: LOGFLARE_SINGLE_TENANT
               value: "true"
             - name: LOGFLARE_SUPABASE_MODE
