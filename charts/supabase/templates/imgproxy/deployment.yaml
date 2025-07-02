@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-imgproxy
+  labels:
+    app: supabase-imgproxy
+    component: imgproxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-imgproxy
+      component: imgproxy
+  template:
+    metadata:
+      labels:
+        app: supabase-imgproxy
+        component: imgproxy
+    spec:
+      containers:
+        - name: imgproxy
+          image: darthsim/imgproxy:v3.8.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          
+          # Environment variables from the Docker Compose configuration
+          env:
+            - name: IMGPROXY_BIND
+              value: ":5001"
+            - name: IMGPROXY_LOCAL_FILESYSTEM_ROOT
+              value: "/"
+            - name: IMGPROXY_USE_ETAG
+              value: "true"
+            - name: IMGPROXY_ENABLE_WEBP_DETECTION
+              value: "true"
+
+          # Volume mounts for storage
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/storage
+
+          # Health checks based on the Docker Compose configuration
+          livenessProbe:
+            exec:
+              command:
+                - imgproxy
+                - health
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            exec:
+              command:
+                - imgproxy
+                - health
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: supabase-imgproxy-storage
+
+      restartPolicy: Always
