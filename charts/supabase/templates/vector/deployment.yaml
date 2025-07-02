@@ -36,11 +36,6 @@ spec:
             - name: vector-config
               mountPath: /etc/vector
               readOnly: true
-            # Mount Docker socket for log collection (在 Kubernetes 中通常不推荐，但为了兼容性)
-            # 注意：这需要特殊的安全配置
-            - name: docker-socket
-              mountPath: /var/run/docker.sock
-              readOnly: true
           
           # 启动命令
           args: ["--config", "/etc/vector/vector.yml"]
@@ -72,23 +67,10 @@ spec:
               cpu: 100m
               memory: 128Mi
           
-          # Security context
-          securityContext:
-            # 需要特权访问 Docker socket
-            privileged: true
-      
       volumes:
         - name: vector-config
           configMap:
             name: supabase-vector-config
-        - name: docker-socket
-          hostPath:
-            path: /var/run/docker.sock
-            type: Socket
-      
-      # 由于需要访问 Docker socket，需要特殊的安全配置
-      securityContext:
-        runAsUser: 0  # 以 root 用户运行以访问 Docker socket
       
       # 节点选择器和容忍度（可选）
       nodeSelector: {}
