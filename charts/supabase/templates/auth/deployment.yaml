@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-auth
+  labels:
+    app: supabase-auth
+    component: auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-auth
+      component: auth
+  template:
+    metadata:
+      labels:
+        app: supabase-auth
+        component: auth
+    spec:
+      # Add init container to wait for dependencies
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for database to be ready..."
+              until nc -z supabase-db 5432; do
+                echo "Database not ready, waiting..."
+                sleep 2
+              done
+              echo "Database is ready!"
+        - name: wait-for-analytics
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for analytics to be ready..."
+              until nc -z supabase-analytics 4000; do
+                echo "Analytics not ready, waiting..."
+                sleep 2
+              done
+              echo "Analytics is ready!"
+      containers:
+        - name: auth
+          image: supabase/gotrue:v2.176.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9999
+              protocol: TCP
+          # Load environment variables from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: supabase-auth-config
+            - secretRef:
+                name: supabase-auth-secret
+
+          # Health checks based on Supabase Docker Compose
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9999
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9999
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
