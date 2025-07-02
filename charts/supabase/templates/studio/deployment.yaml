@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-studio
+  labels:
+    app: supabase-studio
+    component: studio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-studio
+      component: studio
+  template:
+    metadata:
+      labels:
+        app: supabase-studio
+        component: studio
+    spec:
+      # Add init container to wait for dependencies
+      initContainers:
+        - name: wait-for-analytics
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for analytics to be ready..."
+              until nc -z supabase-analytics 4000; do
+                echo "Analytics not ready, waiting..."
+                sleep 2
+              done
+              echo "Analytics is ready!"
+      containers:
+        - name: studio
+          image: supabase/studio:2025.06.30-sha-6f5982d
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          
+          # Load environment variables from ConfigMap and Secret
+          envFrom:
+            - configMapRef:
+                name: supabase-studio-config
+            - secretRef:
+                name: supabase-studio-secret
+
+          # Health checks based on the Docker Compose configuration
+          livenessProbe:
+            httpGet:
+              path: /api/platform/profile
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /api/platform/profile
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+      restartPolicy: Always

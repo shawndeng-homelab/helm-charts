@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-studio-config
+  labels:
+    app: supabase-studio
+    component: studio
+data:
+  # Studio configuration
+  STUDIO_PG_META_URL: "http://supabase-meta:8080"
+  DEFAULT_ORGANIZATION_NAME: "Default Organization"
+  DEFAULT_PROJECT_NAME: "Default Project"
+  SUPABASE_URL: "http://supabase-kong:8000"
+  SUPABASE_PUBLIC_URL: "http://localhost:8000"
+  LOGFLARE_URL: "http://supabase-analytics:4000"
+  NEXT_PUBLIC_ENABLE_LOGS: "true"
+  NEXT_ANALYTICS_BACKEND_PROVIDER: "postgres"

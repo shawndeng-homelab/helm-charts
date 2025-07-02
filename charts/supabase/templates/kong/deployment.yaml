@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-kong
+  labels:
+    app: supabase-kong
+    component: kong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-kong
+      component: kong
+  template:
+    metadata:
+      labels:
+        app: supabase-kong
+        component: kong
+    spec:
+      # Add init container to wait for dependencies
+      initContainers:
+        - name: wait-for-analytics
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for analytics to be ready..."
+              until nc -z supabase-analytics 4000; do
+                echo "Analytics not ready, waiting..."
+                sleep 2
+              done
+              echo "Analytics is ready!"
+      containers:
+        - name: kong
+          image: kong:2.8.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          
+          # Load environment variables from ConfigMap and Secret
+          envFrom:
+            - configMapRef:
+                name: supabase-kong-config
+            - secretRef:
+                name: supabase-kong-secret
+
+          # Volume mounts for Kong configuration
+          volumeMounts:
+            - name: kong-config
+              mountPath: /home/kong/kong.yml
+              subPath: kong.yml
+              readOnly: true
+
+          # Simplified startup - use direct config
+          command: ["/docker-entrypoint.sh"]
+          args: ["kong", "docker-start"]
+
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+      volumes:
+        - name: kong-config
+          configMap:
+            name: supabase-kong-file-config
+
+      restartPolicy: Always
