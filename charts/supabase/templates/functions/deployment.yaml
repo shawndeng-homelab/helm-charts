@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-functions-simple
+  labels:
+    app: supabase-functions
+    component: functions
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-functions
+      component: functions
+  template:
+    metadata:
+      labels:
+        app: supabase-functions
+        component: functions
+    spec:
+      # 只等待 analytics 依赖
+      initContainers:
+        - name: wait-for-analytics
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for analytics to be ready..."
+              until nc -z supabase-analytics 4000; do
+                echo "Analytics not ready, waiting..."
+                sleep 2
+              done
+              echo "Analytics is ready!"
+      containers:
+        - name: functions
+          image: supabase/edge-runtime:v1.67.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9000
+              protocol: TCP
+          # 环境变量
+          envFrom:
+            - configMapRef:
+                name: supabase-functions-config
+            - secretRef:
+                name: supabase-functions-secret
+          
+          # 直接挂载 ConfigMap 作为函数代码
+          volumeMounts:
+            - name: functions-code
+              mountPath: /home/deno/functions
+              readOnly: true
+          
+          # 启动命令 - 使用 args 而不是 command
+          args: ["start", "--main-service", "/home/deno/functions/main"]
+          
+          # 健康检查
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 200m
+              memory: 256Mi
+      
+      volumes:
+        - name: functions-code
+          configMap:
+            name: supabase-functions-code
+            items:
+              - key: hello-index.ts
+                path: hello/index.ts
+              - key: main-index.ts
+                path: main/index.ts
