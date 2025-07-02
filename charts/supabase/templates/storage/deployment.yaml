@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-storage
+  labels:
+    app: supabase-storage
+    component: storage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-storage
+      component: storage
+  template:
+    metadata:
+      labels:
+        app: supabase-storage
+        component: storage
+    spec:
+      # Add init container to wait for dependencies
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for database to be ready..."
+              until nc -z supabase-db 5432; do
+                echo "Database not ready, waiting..."
+                sleep 2
+              done
+              echo "Database is ready!"
+        - name: wait-for-rest
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for rest API to be ready..."
+              until nc -z supabase-rest 3000; do
+                echo "Rest API not ready, waiting..."
+                sleep 2
+              done
+              echo "Rest API is ready!"
+        - name: wait-for-imgproxy
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for imgproxy to be ready..."
+              until nc -z supabase-imgproxy 5001; do
+                echo "Imgproxy not ready, waiting..."
+                sleep 2
+              done
+              echo "Imgproxy is ready!"
+      containers:
+        - name: storage
+          image: supabase/storage-api:v1.24.7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          
+          # Load environment variables from ConfigMap and Secret
+          envFrom:
+            - configMapRef:
+                name: supabase-storage-config
+            - secretRef:
+                name: supabase-storage-secret
+
+          # Volume mounts for storage
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/storage
+
+          # Health checks based on the Docker Compose configuration
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: supabase-imgproxy-storage
+
+      restartPolicy: Always

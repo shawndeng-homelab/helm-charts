@@ -26,16 +26,10 @@ spec:
               containerPort: 5001
               protocol: TCP
           
-          # Environment variables from the Docker Compose configuration
-          env:
-            - name: IMGPROXY_BIND
-              value: ":5001"
-            - name: IMGPROXY_LOCAL_FILESYSTEM_ROOT
-              value: "/"
-            - name: IMGPROXY_USE_ETAG
-              value: "true"
-            - name: IMGPROXY_ENABLE_WEBP_DETECTION
-              value: "true"
+          # Load environment variables from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: supabase-imgproxy-config
 
           # Volume mounts for storage
           volumeMounts:
