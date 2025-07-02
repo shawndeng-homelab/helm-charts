@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-supavisor
+  labels:
+    app: supabase-supavisor
+    component: supavisor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-supavisor
+      component: supavisor
+  template:
+    metadata:
+      labels:
+        app: supabase-supavisor
+        component: supavisor
+    spec:
+      # Add init containers to wait for dependencies
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for database to be ready..."
+              until nc -z supabase-db 5432; do
+                echo "Database not ready, waiting..."
+                sleep 2
+              done
+              echo "Database is ready!"
+        - name: wait-for-analytics
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for analytics to be ready..."
+              until nc -z supabase-analytics 4000; do
+                echo "Analytics not ready, waiting..."
+                sleep 2
+              done
+              echo "Analytics is ready!"
+      containers:
+        - name: supavisor
+          image: supabase/supavisor:2.5.6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+            - name: proxy-tx
+              containerPort: 6543
+              protocol: TCP
+            - name: http
+              containerPort: 4000
+              protocol: TCP
+          
+          # Load environment variables from ConfigMap and Secret
+          envFrom:
+            - configMapRef:
+                name: supabase-supavisor-config
+            - secretRef:
+                name: supabase-supavisor-secret
+          
+          # Mount pooler configuration
+          volumeMounts:
+            - name: pooler-config
+              mountPath: /etc/pooler
+              readOnly: true
+          
+          # Command to start supavisor with migration and configuration
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Starting Supavisor..."
+              /app/bin/migrate && \
+              /app/bin/supavisor eval "$(cat /etc/pooler/pooler.exs)" && \
+              /app/bin/server
+          
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 4000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 4000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 5
+
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 200m
+              memory: 256Mi
+      
+      volumes:
+        - name: pooler-config
+          configMap:
+            name: supabase-supavisor-config
+            items:
+              - key: pooler.exs
+                path: pooler.exs

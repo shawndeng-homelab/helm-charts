@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-supavisor
+  labels:
+    app: supabase-supavisor
+    component: supavisor
+spec:
+  type: ClusterIP
+  ports:
+    # Main PostgreSQL port (pooled connections)
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+    # Transaction mode proxy port
+    - port: 6543
+      targetPort: 6543
+      protocol: TCP
+      name: proxy-tx
+    # Health check and API port
+    - port: 4000
+      targetPort: 4000
+      protocol: TCP
+      name: http
+  selector:
+    app: supabase-supavisor
+    component: supavisor

@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-supavisor-config
+  labels:
+    app: supabase-supavisor
+    component: supavisor
+data:
+  # Non-sensitive environment variables
+  PORT: "4000"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "postgres"
+  CLUSTER_POSTGRES: "true"
+  REGION: "local"
+  ERL_AFLAGS: "-proto_dist inet_tcp"
+  POOLER_POOL_MODE: "transaction"
+  POOLER_TENANT_ID: "default"
+  POOLER_DEFAULT_POOL_SIZE: "15"
+  POOLER_MAX_CLIENT_CONN: "200"
+  POOLER_DB_POOL_SIZE: "10"
+  
+  # Pooler configuration file
+  pooler.exs: |
+    {:ok, _} = Application.ensure_all_started(:supavisor)
+
+    {:ok, version} = case Supavisor.Repo.query!("select version()") do
+      %{rows: [[ver]]} -> Supavisor.Helpers.parse_pg_version(ver)
+      _ -> nil
+    end
+
+    params = %{
+      "external_id" => System.get_env("POOLER_TENANT_ID"),
+      "db_host" => "supabase-db",
+      "db_port" => System.get_env("POSTGRES_PORT"),
+      "db_database" => System.get_env("POSTGRES_DB"),
+      "require_user" => false,
+      "auth_query" => "SELECT * FROM pgbouncer.get_auth($1)",
+      "default_max_clients" => System.get_env("POOLER_MAX_CLIENT_CONN"),
+      "default_pool_size" => System.get_env("POOLER_DEFAULT_POOL_SIZE"),
+      "default_parameter_status" => %{"server_version" => version},
+      "users" => [%{
+        "db_user" => "pgbouncer",
+        "db_password" => System.get_env("POSTGRES_PASSWORD"),
+        "mode_type" => System.get_env("POOLER_POOL_MODE"),
+        "pool_size" => System.get_env("POOLER_DEFAULT_POOL_SIZE"),
+        "is_manager" => true
+      }]
+    }
+
+    if !Supavisor.Tenants.get_tenant_by_external_id(params["external_id"]) do
+      {:ok, _} = Supavisor.Tenants.create_tenant(params)
+    end
