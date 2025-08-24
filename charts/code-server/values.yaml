@@ -1,0 +1,40 @@
+---
+#
+# IMPORTANT NOTE
+#
+# This chart inherits from our common library chart. You can check the default values/options here:
+# https://github.com/nicholaswilde/helm-charts/tree/main/charts/common/values.yaml
+#
+
+image:
+  repository: ghcr.io/linuxserver/code-server
+  pullPolicy: IfNotPresent
+  tag: "version-v3.11.1"
+
+secret: {}
+# PASSWORD: password
+# SUDO_PASSWORD: password
+# HASHED_PASSWORD
+
+# See more environment variables in the code-server documentation
+# https://github.com/linuxserver/docker-code-server#parameters
+env: {}
+  # TZ:
+  # PUID: 1000
+  # PGID: 1000
+  # PROXY_DOMAIN: code-server.my.domain
+
+# 保留从 ExternalSecret 创建的密码引用
+
+service:
+  port:
+    port: 8443
+
+ingress:
+  enabled: false
+
+persistence:
+  config:
+    enabled: false
+    emptyDir: false
+    mountPath: /config
