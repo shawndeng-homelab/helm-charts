@@ -11,6 +11,27 @@ entries:
     urls:
     - https://github.com/shawndeng-homelab/helm-charts/releases/download/cloudflare-vpn-0.1.0/cloudflare-vpn-0.1.0.tgz
     version: 0.1.0
+  code-server:
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Bump tag to version-v3.11.1
+      artifacthub.io/images: |
+        - name: code-server
+          image: ghcr.io/linuxserver/code-server:version-v3.11.1
+    apiVersion: v2
+    appVersion: v3.11.1
+    created: "2025-08-24T13:37:18.479800595Z"
+    description: Run VS Code on any machine anywhere and access it in the browser.
+    digest: 365e4215767943a4511f08d46164cdc003ccec3acb4d2378104bde6eb78b8b00
+    name: code-server
+    sources:
+    - https://github.com/cdr/code-server
+    - https://hub.docker.com/r/linuxserver/code-server
+    type: application
+    urls:
+    - https://github.com/shawndeng-homelab/helm-charts/releases/download/code-server-1.1.1/code-server-1.1.1.tgz
+    version: 1.1.1
   hello-word:
   - apiVersion: v2
     appVersion: 0.1.0
@@ -278,4 +299,4 @@ entries:
     urls:
     - https://github.com/shawndeng-homelab/helm-charts/releases/download/supabase-5.3.6/supabase-5.3.6.tgz
     version: 5.3.6
-generated: "2025-06-27T08:24:04.042100427Z"
+generated: "2025-08-24T13:37:18.479816996Z"
