@@ -24,7 +24,6 @@ env: {}
   # PGID: 1000
   # PROXY_DOMAIN: code-server.my.domain
 
-# 保留从 ExternalSecret 创建的密码引用
 
 service:
   port:
